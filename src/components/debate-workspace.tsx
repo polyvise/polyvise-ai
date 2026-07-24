@@ -10,6 +10,8 @@ import {
   Settings2,
   SendHorizontal
 } from "lucide-react";
+import Link from "next/link";
+import type { Route } from "next";
 import { FormEvent, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { ArgumentMap } from "@/components/argument-map";
 import {
@@ -368,17 +370,22 @@ export function DebateWorkspace() {
     <main className="min-h-screen">
       <div className="border-b border-graphite/10 bg-paper/80 backdrop-blur">
         <div className="mx-auto flex max-w-[1180px] items-center justify-between px-5 py-3">
-          <span className="text-sm font-semibold tracking-tight text-ink">polyvise</span>
-          {live ? (
-            <button
-              type="button"
-              onClick={startNewDebate}
-              className="inline-flex items-center gap-2 rounded-md px-2.5 py-1.5 text-xs font-medium text-graphite/70 transition hover:text-ink"
-            >
-              <RotateCcw className="h-3.5 w-3.5" />
-              New debate
-            </button>
-          ) : null}
+          <Link href="/" className="text-sm font-semibold tracking-tight text-ink">polyvise</Link>
+          <div className="flex items-center gap-3">
+            <Link href={"/stats" as Route} className="text-xs font-medium text-graphite/60 transition hover:text-ink">
+              Stats
+            </Link>
+            {live ? (
+              <button
+                type="button"
+                onClick={startNewDebate}
+                className="inline-flex items-center gap-2 rounded-md px-2.5 py-1.5 text-xs font-medium text-graphite/70 transition hover:text-ink"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                New debate
+              </button>
+            ) : null}
+          </div>
         </div>
       </div>
 
