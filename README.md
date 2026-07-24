@@ -2,7 +2,7 @@
 
 This repository contains the Polyvise website and professional debate workspace served at `polyvise.ai`.
 
-It consumes the framework-neutral [`@polyvise/core`](https://github.com/polyvise/core) package and owns its own Next.js routes, persistence adapters, UI, operations, and deployment configuration.
+It consumes the framework-neutral [`@polyvise/core`](https://github.com/polyvise/polyvise-core) package and owns its own Next.js routes, persistence adapters, UI, operations, and deployment configuration.
 
 ## Run locally
 
@@ -21,4 +21,4 @@ For live provider keys, create an ignored `local.secrets.env` file and run `./sc
 npm run verify
 ```
 
-The final pre-split monorepo is preserved in `polyvise/core` under the `monolith-final-2026-07-23` tag.
+The final pre-split monorepo is preserved in `polyvise/polyvise-core` under the `monolith-final-2026-07-23` tag.
