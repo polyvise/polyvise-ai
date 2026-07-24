@@ -1,6 +1,6 @@
 import { ZodError } from "zod";
-import { followupRequestSchema } from "@polyvise/debate-engine/debate/schema";
-import { addFollowup } from "@polyvise/debate-engine/debate/store";
+import { followupRequestSchema } from "@polyvise/core/debate/schema";
+import { addFollowup } from "@/server/debate-store";
 
 type RouteContext = {
   params: Promise<{ id: string }> | { id: string };

@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { ZodError } from "zod";
-import { listDebates, startDebate } from "@polyvise/debate-engine/debate/store";
+import { listDebates, startDebate } from "@/server/debate-store";
 
 export async function GET() {
   return Response.json(

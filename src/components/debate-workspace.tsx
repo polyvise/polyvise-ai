@@ -36,7 +36,7 @@ import type {
   Scorecard,
   StanceScout,
   TopicKind
-} from "@polyvise/debate-engine/debate/types";
+} from "@polyvise/core/debate/types";
 
 type StepId = "scouts" | "claims" | "turns" | "scorecard" | "summary";
 

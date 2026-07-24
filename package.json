@@ -1,20 +1,44 @@
 {
-  "name": "@polyvise/polyvise-web",
-  "version": "0.1.0",
+  "name": "@polyvise/polyvise-ai",
+  "version": "0.3.0",
   "private": true,
-  "description": "Professional Polyvise demo and modeling interface.",
+  "description": "The Polyvise website and professional debate workspace.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "verify": "npm run typecheck && npm test && npm run build"
   },
   "dependencies": {
-    "@polyvise/debate-engine": "0.1.0",
+    "@polyvise/core": "0.3.1",
     "@xyflow/react": "latest",
+    "drizzle-orm": "latest",
     "lucide-react": "latest",
     "next": "latest",
+    "postgres": "latest",
     "react": "latest",
-    "react-dom": "latest"
+    "react-dom": "latest",
+    "zod": "latest"
+  },
+  "devDependencies": {
+    "@tailwindcss/typography": "latest",
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "autoprefixer": "latest",
+    "drizzle-kit": "latest",
+    "jsdom": "latest",
+    "postcss": "latest",
+    "tailwindcss": "^3.4.17",
+    "typescript": "latest",
+    "vite-tsconfig-paths": "latest",
+    "vitest": "latest"
+  },
+  "engines": {
+    "node": ">=20.11.0"
   }
 }
