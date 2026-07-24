@@ -143,7 +143,7 @@ let cachedFirestoreToken: FirestoreToken | null = null;
 export class FirestoreDebateRepository implements DebateRepository {
   private readonly projectId: string;
   private readonly databaseId: string;
-  private readonly collection = "debate_records";
+  private readonly collection: string;
 
   constructor(
     projectId =
@@ -151,7 +151,8 @@ export class FirestoreDebateRepository implements DebateRepository {
       process.env.GOOGLE_CLOUD_PROJECT ??
       process.env.GCP_PROJECT_ID ??
       "",
-    databaseId = process.env.FIRESTORE_DATABASE_ID ?? "(default)"
+    databaseId = process.env.FIRESTORE_DATABASE_ID ?? "(default)",
+    collection = process.env.POLYVISE_FIRESTORE_DEBATE_COLLECTION ?? "debate_records"
   ) {
     if (!projectId) {
       throw new Error("FIRESTORE_PROJECT_ID or GOOGLE_CLOUD_PROJECT is required for Firestore persistence.");
@@ -159,6 +160,7 @@ export class FirestoreDebateRepository implements DebateRepository {
 
     this.projectId = projectId;
     this.databaseId = databaseId;
+    this.collection = collection;
   }
 
   async save(debate: DebateRecord): Promise<void> {
@@ -240,7 +242,7 @@ export class FirestoreDebateRepository implements DebateRepository {
 export class FirestoreFeedbackRepository implements FeedbackRepository {
   private readonly projectId: string;
   private readonly databaseId: string;
-  private readonly collection = "user_feedback";
+  private readonly collection: string;
 
   constructor(
     projectId =
@@ -248,7 +250,8 @@ export class FirestoreFeedbackRepository implements FeedbackRepository {
       process.env.GOOGLE_CLOUD_PROJECT ??
       process.env.GCP_PROJECT_ID ??
       "",
-    databaseId = process.env.FIRESTORE_DATABASE_ID ?? "(default)"
+    databaseId = process.env.FIRESTORE_DATABASE_ID ?? "(default)",
+    collection = process.env.POLYVISE_FIRESTORE_FEEDBACK_COLLECTION ?? "user_feedback"
   ) {
     if (!projectId) {
       throw new Error("FIRESTORE_PROJECT_ID or GOOGLE_CLOUD_PROJECT is required for Firestore persistence.");
@@ -256,6 +259,7 @@ export class FirestoreFeedbackRepository implements FeedbackRepository {
 
     this.projectId = projectId;
     this.databaseId = databaseId;
+    this.collection = collection;
   }
 
   async save(feedback: UserFeedback): Promise<void> {
