@@ -1,22 +1,33 @@
 import type { Config } from "tailwindcss";
 
+/**
+ * Tailwind's palette resolves through the same CSS variables as the design
+ * system in globals.css, so a utility class and a component class can never
+ * disagree about what "pro" means — and both repaint on a theme switch.
+ */
 const config: Config = {
+  darkMode: ["class", '[data-theme="dark"]'],
   content: ["./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
-        ink: "#171717",
-        graphite: "#2e3135",
-        paper: "#f8f7f3",
-        linen: "#efebe2",
-        jade: "#227c70",
-        moss: "#687a3e",
-        saffron: "#c38326",
-        coral: "#c9563f",
-        plum: "#6d4b73"
+        canvas: "var(--canvas)",
+        surface: "var(--surface)",
+        raised: "var(--raised)",
+        sunken: "var(--sunken)",
+        ivory: "var(--ivory)",
+        muted: "var(--muted)",
+        faint: "var(--faint)",
+        line: "var(--line)",
+        pro: "var(--pro)",
+        con: "var(--con)",
+        judge: "var(--judge)",
+        alert: "var(--alert)"
       },
-      boxShadow: {
-        panel: "0 18px 48px rgba(23, 23, 23, 0.09)"
+      fontFamily: {
+        display: "var(--display)",
+        ui: "var(--ui)",
+        mono: "var(--mono)"
       }
     }
   },

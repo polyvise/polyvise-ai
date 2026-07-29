@@ -16,22 +16,22 @@ type ArgumentMapProps = {
   edges: ArgumentEdge[];
 };
 
-const sideStyles: Record<ArgumentNode["side"], { border: string; accent: string; background: string }> = {
-  pro: {
-    border: "rgba(34, 124, 112, 0.48)",
-    accent: "#227c70",
-    background: "#f3fbf8"
-  },
-  con: {
-    border: "rgba(201, 86, 63, 0.48)",
-    accent: "#c9563f",
-    background: "#fff6f3"
-  },
-  neutral: {
-    border: "rgba(109, 75, 115, 0.42)",
-    accent: "#6d4b73",
-    background: "#faf7fb"
-  }
+/**
+ * React Flow needs concrete values rather than class names, so every colour
+ * here is read back out of the same CSS variables the rest of the app styles
+ * from — which also means the map repaints on a theme switch.
+ */
+const sideTokens: Record<ArgumentNode["side"], { accent: string; border: string; background: string }> = {
+  pro: { accent: "var(--pro)", border: "var(--pro-line)", background: "var(--pro-soft)" },
+  con: { accent: "var(--con)", border: "var(--con-line)", background: "var(--con-soft)" },
+  neutral: { accent: "var(--judge)", border: "var(--judge-line)", background: "var(--judge-soft)" }
+};
+
+const relationColor: Record<ArgumentEdge["relation"], string> = {
+  supports: "var(--pro)",
+  challenges: "var(--con)",
+  qualifies: "var(--judge)",
+  summarizes: "var(--muted)"
 };
 
 export function ArgumentMap({ nodes, edges }: ArgumentMapProps) {
@@ -39,7 +39,7 @@ export function ArgumentMap({ nodes, edges }: ArgumentMapProps) {
   const flowEdges = edges.map(toFlowEdge);
 
   return (
-    <div className="h-[520px] min-h-[420px] overflow-hidden rounded-lg border border-graphite/15 bg-[#fbfaf7]">
+    <div style={{ height: 520, minHeight: 420, background: "var(--sunken)" }}>
       <ReactFlow
         nodes={flowNodes}
         edges={flowEdges}
@@ -49,8 +49,8 @@ export function ArgumentMap({ nodes, edges }: ArgumentMapProps) {
         maxZoom={1.6}
         proOptions={{ hideAttribution: true }}
       >
-        <Background color="#d9d3c8" gap={18} />
-        <MiniMap pannable zoomable nodeStrokeWidth={3} />
+        <Background color="var(--dot)" gap={18} />
+        <MiniMap pannable zoomable nodeStrokeWidth={3} maskColor="var(--hover-3)" />
         <Controls />
       </ReactFlow>
     </div>
@@ -82,7 +82,7 @@ function toFlowNodes(nodes: ArgumentNode[]): Node[] {
   });
 
   return positioned.map(({ node, x, y }) => {
-    const style = sideStyles[node.side];
+    const tokens = sideTokens[node.side];
 
     return {
       id: node.id,
@@ -90,25 +90,30 @@ function toFlowNodes(nodes: ArgumentNode[]): Node[] {
       position: { x, y },
       data: {
         label: (
-          <div className="space-y-1.5 p-3 text-left">
-            <div className="flex items-center justify-between gap-2">
+          <div style={{ padding: 12, textAlign: "left" }}>
+            <div className="row gap6">
               <span
-                className="h-2.5 w-2.5 shrink-0 rounded-full"
-                style={{ backgroundColor: style.accent }}
+                style={{
+                  height: 7,
+                  width: 7,
+                  flex: "none",
+                  borderRadius: "50%",
+                  backgroundColor: tokens.accent
+                }}
                 aria-hidden="true"
               />
-              <span className="truncate text-[11px] font-semibold uppercase tracking-[0.08em] text-graphite/60">
-                {node.kind}
-              </span>
+              <span className="eyebrow">{node.kind}</span>
             </div>
-            <div className="text-sm font-semibold leading-snug text-ink">{node.label}</div>
-            <div className="line-clamp-3 text-xs leading-relaxed text-graphite/75">{node.detail}</div>
+            <div className="turn-name mt6">{node.label}</div>
+            <div className="small mt6" style={{ fontSize: 11.5, lineHeight: 1.45 }}>
+              {node.detail}
+            </div>
           </div>
         )
       },
       style: {
-        background: style.background,
-        borderColor: style.border,
+        background: tokens.background,
+        borderColor: tokens.border,
         width: node.id === "resolution" ? 310 : 230
       }
     };
@@ -116,8 +121,7 @@ function toFlowNodes(nodes: ArgumentNode[]): Node[] {
 }
 
 function toFlowEdge(edge: ArgumentEdge): Edge {
-  const relationColor =
-    edge.relation === "challenges" ? "#c9563f" : edge.relation === "qualifies" ? "#c38326" : "#227c70";
+  const color = relationColor[edge.relation] ?? "var(--muted)";
 
   return {
     id: edge.id,
@@ -127,20 +131,20 @@ function toFlowEdge(edge: ArgumentEdge): Edge {
     label: edge.relation,
     markerEnd: {
       type: MarkerType.ArrowClosed,
-      color: relationColor
+      color
     },
     style: {
-      stroke: relationColor,
+      stroke: color,
       strokeWidth: 2
     },
     labelStyle: {
-      fill: "#2e3135",
+      fill: "var(--text)",
       fontSize: 11,
       fontWeight: 600
     },
     labelBgStyle: {
-      fill: "#fffdfa",
-      fillOpacity: 0.86
+      fill: "var(--surface)",
+      fillOpacity: 0.9
     }
   };
 }

@@ -8,6 +8,15 @@ import {
   createDefaultDebateRepository,
   createDefaultFeedbackRepository
 } from "./repository";
+import { isRosterSnapshot, stepForSnapshot, stepLabels, type StepId } from "@/lib/run-view";
+
+export interface StepReliability {
+  step: StepId;
+  label: string;
+  calls: number;
+  fallbacks: number;
+  retries: number;
+}
 
 export interface PublicStats {
   totalDebates: number;
@@ -26,6 +35,11 @@ export interface PublicStats {
   statusBreakdown: Array<{ status: DebateStatus; count: number }>;
   dailyActivity: Array<{ date: string; label: string; count: number }>;
   modelUsage: Array<{ model: string; debates: number }>;
+  /** Runs whose every step got a real model answer, over runs with a stored run. */
+  fallbackFreeRate: number;
+  totalModelCalls: number;
+  totalRetries: number;
+  stepReliability: StepReliability[];
   lastUpdatedAt: string | null;
 }
 
@@ -56,6 +70,11 @@ export function summarizePublicStats(
   let completionTokens = 0;
   let estimatedCostUsd = 0;
   let lastUpdatedAt: string | null = null;
+  let runsWithStoredRun = 0;
+  let fallbackFreeRuns = 0;
+  let totalModelCalls = 0;
+  let totalRetries = 0;
+  const stepStats = new Map<StepId, { calls: number; fallbacks: number; retries: number }>();
 
   for (const debate of debates) {
     statusCounts.set(debate.status, (statusCounts.get(debate.status) ?? 0) + 1);
@@ -76,12 +95,34 @@ export function summarizePublicStats(
 
     totalSources += run.sources.length;
     totalTurns += run.turns.length;
+    runsWithStoredRun += 1;
+    let runHadFallback = false;
     const modelsInDebate = new Set<string>();
     for (const snapshot of run.modelSnapshots) {
       modelsInDebate.add(snapshot.model);
       promptTokens += snapshot.promptTokens ?? 0;
       completionTokens += snapshot.completionTokens ?? 0;
       estimatedCostUsd += snapshot.estimatedCostUsd ?? 0;
+
+      const match = isRosterSnapshot(snapshot) ? null : stepForSnapshot(snapshot);
+      if (!match) {
+        continue;
+      }
+
+      const retries = Math.max(0, (snapshot.attempts?.length ?? 1) - 1);
+      const fellBack = Boolean(snapshot.failure);
+      totalModelCalls += 1;
+      totalRetries += retries;
+      runHadFallback ||= fellBack;
+
+      const entry = stepStats.get(match.step) ?? { calls: 0, fallbacks: 0, retries: 0 };
+      entry.calls += 1;
+      entry.fallbacks += fellBack ? 1 : 0;
+      entry.retries += retries;
+      stepStats.set(match.step, entry);
+    }
+    if (!runHadFallback) {
+      fallbackFreeRuns += 1;
     }
     for (const model of modelsInDebate) {
       modelCounts.set(model, (modelCounts.get(model) ?? 0) + 1);
@@ -123,6 +164,19 @@ export function summarizePublicStats(
     modelUsage: Array.from(modelCounts, ([model, debates]) => ({ model, debates }))
       .sort((a, b) => b.debates - a.debates || a.model.localeCompare(b.model))
       .slice(0, 10),
+    fallbackFreeRate: runsWithStoredRun ? fallbackFreeRuns / runsWithStoredRun : 0,
+    totalModelCalls,
+    totalRetries,
+    stepReliability: (Object.keys(stepLabels) as StepId[]).map((step) => {
+      const entry = stepStats.get(step);
+      return {
+        step,
+        label: stepLabels[step],
+        calls: entry?.calls ?? 0,
+        fallbacks: entry?.fallbacks ?? 0,
+        retries: entry?.retries ?? 0
+      };
+    }),
     lastUpdatedAt
   };
 }

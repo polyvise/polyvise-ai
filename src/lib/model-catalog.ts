@@ -1,6 +1,9 @@
 import {
   getAvailableModels,
-  type ModelProvider
+  type ModelCompatibility,
+  type ModelProvider,
+  type ModelSpeed,
+  type ModelTier
 } from "@polyvise/core/models/catalog";
 
 export type SlotId = "quick" | "deep" | "judge";
@@ -9,6 +12,11 @@ export interface ModelOption {
   id: string;
   label: string;
   provider: ModelProvider;
+  speed: ModelSpeed;
+  tier: ModelTier;
+  reasoning: boolean;
+  compatibility: ModelCompatibility;
+  compatibilityNote?: string;
   notes?: string;
 }
 
@@ -44,6 +52,11 @@ export const modelCatalog: ModelOption[] = getAvailableModels().map((model) => (
   id: model.id,
   label: model.label,
   provider: model.provider,
+  speed: model.speed,
+  tier: model.tier,
+  reasoning: model.reasoning,
+  compatibility: model.compatibility,
+  compatibilityNote: model.compatibilityNote,
   notes: model.notes
 }));
 
