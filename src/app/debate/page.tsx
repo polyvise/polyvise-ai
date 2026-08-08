@@ -62,12 +62,15 @@ export default function DebateModePage() {
         <div className="pipeline">
           {roundOrder.map((round, index) => (
             <div className="pipe-step" key={round}>
-              <div className="pipe-n">{String(index + 1).padStart(2, "0")}</div>
+              <div className="pipe-rail">
+                <span
+                  className={`pipe-node ${round === "judge_review" || round === "synthesis" ? "judge" : "split"}`}
+                />
+                <span className="pipe-n">{String(index + 1).padStart(2, "0")}</span>
+                <span className="pipe-line" />
+              </div>
               <div className="pipe-t">{roundLabels[round]}</div>
               <div className="pipe-d">{roundDetail[round]}</div>
-              <div
-                className={`pipe-bar ${round === "judge_review" || round === "synthesis" ? "bar-judge" : "bar-split"}`}
-              />
             </div>
           ))}
         </div>

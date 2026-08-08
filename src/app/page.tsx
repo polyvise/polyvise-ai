@@ -13,7 +13,7 @@ const modes = [
     glyph: <path d="M2 5h5v4H4l-2 2V5zM9 7h5v4h-3l-2 2V7z" strokeLinejoin="round" />,
     glyphTone: "s-pro",
     title: "Hybrid Council",
-    body: "Two agents argue for, two argue against, and a neutral judge scores the result. Six rounds, ending in a verdict with a confidence figure.",
+    body: "Two agents argue for, two against, one neutral judge scores it. Six rounds, ending in a verdict with a confidence figure.",
     tags: ["Adversarial", "5 agents"],
     soon: false
   },
@@ -28,7 +28,7 @@ const modes = [
     ),
     glyphTone: "s-muted",
     title: "Consensus",
-    body: "Agents answer independently, then revise over several rounds. Reports the range they settle into and which agents held their original position.",
+    body: "Agents answer alone, then revise across rounds. Reports the range they settle into — and which ones never moved.",
     tags: ["Convergent", "N agents"],
     soon: true
   },
@@ -43,7 +43,7 @@ const modes = [
     ),
     glyphTone: "s-muted",
     title: "Advisory Panel",
-    body: "Four named perspectives — economist, ethicist, operator, skeptic — each give advice separately. A chair writes up where they agree and where they conflict.",
+    body: "An economist, an ethicist, an operator and a skeptic advise separately. A chair maps where they agree and where they clash.",
     tags: ["Additive", "Lens-based"],
     soon: true
   },
@@ -59,7 +59,7 @@ const modes = [
     ),
     glyphTone: "s-muted",
     title: "Model Lab",
-    body: "The same prompt sent to every configured model, with the answers side by side and the latency, cost and token count for each.",
+    body: "One prompt, every configured model, answers side by side — with the latency, cost and token count for each.",
     tags: ["Comparative", "Benchmark"],
     soon: false
   }
@@ -69,38 +69,45 @@ const pipeline = [
   {
     n: "01",
     title: "Frame",
-    detail:
-      "Turns your question into a resolution the agents can argue for or against, and classifies the topic and its stakes.",
-    bar: "bar-judge"
+    detail: "Your question becomes a resolution agents can argue, tagged by topic and by what's at stake.",
+    tone: "judge"
   },
   {
     n: "02",
     title: "Scout",
-    detail:
-      "Agents stake out positions and list their assumptions independently, before any of them see each other's work.",
-    bar: "bar-split"
+    detail: "Each agent stakes out a position and lists its assumptions — before seeing anyone else's.",
+    tone: "split"
   },
   {
     n: "03",
     title: "Evidence",
-    detail:
-      "Retrieves sources, grades each one primary, expert or methodology, and screens out anything promotional or undated.",
-    bar: "bar-pro"
+    detail: "Sources are retrieved and graded primary, expert or methodology. Promotional and undated get cut.",
+    tone: "pro"
   },
   {
     n: "04",
     title: "Deliberate",
-    detail:
-      "Opening, cross-examination, rebuttal and closing rounds. Each turn records which claims and sources it rests on.",
-    bar: "bar-split"
+    detail: "Opening, cross-examination, rebuttal, closing. Every turn records the claims and sources it rests on.",
+    tone: "split"
   },
   {
     n: "05",
     title: "Judge",
-    detail:
-      "A neutral model scores five dimensions, writes the verdict, and lists the evidence that would change it.",
-    bar: "bar-judge"
+    detail: "A neutral model scores five dimensions, writes the verdict, and names the evidence that would overturn it.",
+    tone: "judge"
   }
+];
+
+/**
+ * Who holds the floor in each of the six rounds: both sides trade through
+ * opening, cross-examination, rebuttal and closing, then the judge takes
+ * review and synthesis. Drives the specimen lane chart in the hero — the
+ * page's one picture of what a run actually looks like.
+ */
+const traceLanes = [
+  { name: "For", tone: "pro", rounds: [1, 1, 1, 1, 0, 0] },
+  { name: "Against", tone: "con", rounds: [1, 1, 1, 1, 0, 0] },
+  { name: "Judge", tone: "judge", rounds: [0, 0, 0, 0, 1, 1] }
 ];
 
 export default async function OverviewPage() {
@@ -115,29 +122,33 @@ export default async function OverviewPage() {
     <section className="page">
       <div className="hero">
         <div className="hero-grid" />
-        <div className="hero-inner">
-          <span className="eyebrow">Multi-agent deliberation engine</span>
-          <h1 className="display d1">
-            Put a question to several models and get an answer you can <em>audit</em>.
-          </h1>
-          <p className="lede">
-            Polyvise runs a question through a structured format — adversarial debate, consensus finding, or an
-            advisory panel — using several independent models at once. What comes back is a verdict where every claim
-            links to the source behind it and every step names the model that produced it.
-          </p>
-          <div className="hero-cta">
-            <Link href={"/compose" as Route} className="btn btn-primary">
-              Start a run →
-            </Link>
-            <Link href={"/runs" as Route} className="btn">
-              See past runs
-            </Link>
+
+        <div className="hero-body">
+          <div className="hero-inner">
+            <span className="eyebrow">Multi-model deliberation</span>
+            <h1 className="display d1">
+              Several models argue it out. You get a verdict you can <em>audit</em>.
+            </h1>
+            <p className="lede">
+              Put a question through a structured format — adversarial debate, consensus, or an advisory panel — run by
+              independent models. Every claim links to its source, and every step names the model behind it.
+            </p>
+            <div className="hero-cta">
+              <Link href={"/compose" as Route} className="btn btn-primary">
+                Start a run →
+              </Link>
+              <Link href={"/runs" as Route} className="btn">
+                Browse past runs
+              </Link>
+            </div>
           </div>
+
+          <RunSpecimen />
         </div>
 
         <div className="stat-strip">
           <Stat value="4" label="deliberation modes" />
-          <Stat value={String(MODEL_COUNT)} label={`models across ${PROVIDER_COUNT} providers`} />
+          <Stat value={String(MODEL_COUNT)} label={`models · ${PROVIDER_COUNT} providers`} />
           <Stat value="6" label="rounds per debate" />
           <Stat
             value={runsRecorded === null ? "—" : String(runsRecorded)}
@@ -153,10 +164,10 @@ export default async function OverviewPage() {
       </div>
 
       <div className="mt44">
-        <div className="section-head">
+        <div className="section-head ruled">
           <div>
-            <span className="eyebrow">Mode registry</span>
-            <h3 className="display d3 mt6">Choose how the models deliberate</h3>
+            <span className="eyebrow">Modes</span>
+            <h3 className="display d3 mt6">Four ways to work a question</h3>
           </div>
           <span className="small">Every mode renders into the same run surface.</span>
         </div>
@@ -164,22 +175,24 @@ export default async function OverviewPage() {
         <div className="grid g4">
           {modes.map((mode) => (
             <Link key={mode.title} href={mode.href} className={`mode-card${mode.soon ? " soon" : ""}`}>
-              <span className={`chip corner${mode.corner.tone === "pro" ? " pro" : ""}`}>
-                {mode.corner.tone === "pro" ? <span className="dot" /> : null}
-                {mode.corner.label}
-              </span>
-              <div className="mode-glyph">
-                <svg
-                  width="17"
-                  height="17"
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  className={mode.glyphTone}
-                  strokeWidth={1.4}
-                  aria-hidden="true"
-                >
-                  {mode.glyph}
-                </svg>
+              <div className="mode-top">
+                <div className="mode-glyph">
+                  <svg
+                    width="17"
+                    height="17"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    className={mode.glyphTone}
+                    strokeWidth={1.4}
+                    aria-hidden="true"
+                  >
+                    {mode.glyph}
+                  </svg>
+                </div>
+                <span className={`chip push${mode.corner.tone === "pro" ? " pro" : ""}`}>
+                  {mode.corner.tone === "pro" ? <span className="dot" /> : null}
+                  {mode.corner.label}
+                </span>
               </div>
               <h4>{mode.title}</h4>
               <p>{mode.body}</p>
@@ -189,6 +202,9 @@ export default async function OverviewPage() {
                     {tag}
                   </span>
                 ))}
+                <span className="mode-go" aria-hidden="true">
+                  →
+                </span>
               </div>
             </Link>
           ))}
@@ -196,24 +212,89 @@ export default async function OverviewPage() {
       </div>
 
       <div className="mt44">
-        <div className="section-head">
+        <div className="section-head ruled">
           <div>
-            <span className="eyebrow">Engine pipeline</span>
-            <h3 className="display d3 mt6">What happens after you start a run</h3>
+            <span className="eyebrow">Pipeline</span>
+            <h3 className="display d3 mt6">What happens after you hit start</h3>
           </div>
+          <span className="small">Five stages, every one of them on the record.</span>
         </div>
         <div className="pipeline">
           {pipeline.map((step) => (
             <div className="pipe-step" key={step.n}>
-              <div className="pipe-n">{step.n}</div>
+              <div className="pipe-rail">
+                <span className={`pipe-node ${step.tone}`} />
+                <span className="pipe-n">{step.n}</span>
+                <span className="pipe-line" />
+              </div>
               <div className="pipe-t">{step.title}</div>
               <div className="pipe-d">{step.detail}</div>
-              <div className={`pipe-bar ${step.bar}`} />
             </div>
           ))}
         </div>
       </div>
+
+      <div className="cta-band">
+        <div className="cta-copy">
+          <span className="eyebrow">Ready when you are</span>
+          <h3 className="display d3 mt6">Ask something worth arguing about</h3>
+          <p className="small mt10">
+            Pick a mode, pick your models, and watch the transcript build. Nothing is hidden behind the verdict.
+          </p>
+        </div>
+        <div className="row gap8 wrap">
+          <Link href={"/compose" as Route} className="btn btn-primary">
+            Start a run →
+          </Link>
+          <Link href={"/lab" as Route} className="btn">
+            Compare models first
+          </Link>
+        </div>
+      </div>
     </section>
+  );
+}
+
+function RunSpecimen() {
+  return (
+    <div className="trace" aria-hidden="true">
+      <div className="trace-head">
+        <span className="chip pro">
+          <span className="dot" />
+          Live
+        </span>
+        <span className="meta push">debate_8f2c41</span>
+      </div>
+
+      <div className="trace-q">Should we move our billing stack off a single vendor?</div>
+
+      <div className="trace-lanes">
+        <div className="trace-row">
+          <span />
+          {[1, 2, 3, 4, 5, 6].map((round) => (
+            <span className="trace-num" key={round}>
+              R{round}
+            </span>
+          ))}
+        </div>
+        {traceLanes.map((lane) => (
+          <div className="trace-row" key={lane.name}>
+            <span className="trace-name">{lane.name}</span>
+            {lane.rounds.map((active, index) => (
+              <span className={`trace-cell${active ? ` ${lane.tone}` : ""}`} key={index} />
+            ))}
+          </div>
+        ))}
+      </div>
+
+      <div className="trace-foot">
+        <span className="trace-verdict">Affirmative</span>
+        <span className="trace-meter">
+          <i style={{ width: "78%" }} />
+        </span>
+        <span className="meta">78% confidence</span>
+      </div>
+    </div>
   );
 }
 

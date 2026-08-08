@@ -384,12 +384,64 @@ select:focus-visible {
   top: 0;
   height: 100vh;
 }
+/* Below the rail breakpoint the sidebar becomes a single scrolling strip.
+   Stacked vertically it pushed the whole page a screen and a half down before
+   any content appeared. Left static rather than sticky so it can't collide
+   with the topbar, which is already pinned to the same edge. */
 @media (max-width: 900px) {
   .rail {
     position: static;
     height: auto;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 14px;
     border-right: 0;
     border-bottom: 1px solid var(--line);
+  }
+  .brand {
+    flex: none;
+    padding: 0 4px 0 0;
+  }
+  .rail nav {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .rail nav::-webkit-scrollbar {
+    display: none;
+  }
+  .nav-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0;
+  }
+  .nav-group + .nav-group {
+    margin-left: 4px;
+    padding-left: 8px;
+    border-left: 1px solid var(--line);
+  }
+  .nav-label {
+    display: none;
+  }
+  .nav-item {
+    width: auto;
+    padding: 6px 10px;
+    white-space: nowrap;
+  }
+  .nav-item .tag {
+    margin-left: 5px;
+  }
+  .nav-item.active::before {
+    display: none;
+  }
+  .rail-foot {
+    display: none;
   }
 }
 .brand {
@@ -707,7 +759,7 @@ code {
 /* ============================================================ OVERVIEW */
 .hero {
   position: relative;
-  padding: 52px 0 44px;
+  padding: 48px 0 42px;
   border-bottom: 1px solid var(--line);
   overflow: hidden;
 }
@@ -719,15 +771,30 @@ code {
   background-image: linear-gradient(var(--line) 1px, transparent 1px),
     linear-gradient(90deg, var(--line) 1px, transparent 1px);
   background-size: 64px 64px;
-  -webkit-mask-image: radial-gradient(ellipse 80% 60% at 70% 20%, #000 0%, transparent 75%);
-  mask-image: radial-gradient(ellipse 80% 60% at 70% 20%, #000 0%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 70% at 72% 34%, #000 0%, transparent 72%);
+  mask-image: radial-gradient(ellipse 70% 70% at 72% 34%, #000 0%, transparent 72%);
+}
+/* Two columns: the argument on the left, a specimen of the output on the
+   right. The right column is the page's only picture of what a run is. */
+.hero-body {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr);
+  gap: 44px;
+  align-items: center;
+}
+@media (max-width: 1100px) {
+  .hero-body {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 36px;
+  }
 }
 .hero-inner {
   position: relative;
-  max-width: 760px;
+  max-width: 640px;
 }
 .hero h1 {
-  margin: 16px 0 0;
+  margin: 15px 0 0;
 }
 .hero h1 em {
   font-style: italic;
@@ -735,7 +802,7 @@ code {
 }
 .hero .lede {
   margin-top: 18px;
-  max-width: 620px;
+  max-width: 560px;
 }
 .hero-cta {
   margin-top: 26px;
@@ -745,7 +812,106 @@ code {
   flex-wrap: wrap;
 }
 
+/* ---------- hero specimen: a miniature run ---------- */
+.trace {
+  position: relative;
+  min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.trace-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--line);
+  background: var(--sunken);
+}
+.trace-head .push {
+  margin-left: auto;
+}
+.trace-q {
+  padding: 17px 16px 15px;
+  font-family: var(--display);
+  font-size: 20px;
+  line-height: 1.24;
+  color: var(--ivory);
+}
+.trace-lanes {
+  padding: 0 16px 14px;
+}
+/* One label column, then one column per round. */
+.trace-row {
+  display: grid;
+  grid-template-columns: 68px repeat(6, minmax(0, 1fr));
+  gap: 5px;
+  align-items: center;
+}
+.trace-row + .trace-row {
+  margin-top: 7px;
+}
+.trace-num {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--ghost);
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+.trace-name {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.trace-cell {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--track);
+}
+.trace-cell.pro {
+  background: var(--pro);
+}
+.trace-cell.con {
+  background: var(--con);
+}
+.trace-cell.judge {
+  background: var(--judge);
+}
+.trace-foot {
+  border-top: 1px solid var(--line);
+  background: var(--hover-0);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.trace-verdict {
+  font-size: 12.5px;
+  color: var(--ivory);
+  font-weight: 600;
+}
+.trace-meter {
+  flex: 1;
+  min-width: 70px;
+  height: 4px;
+  border-radius: 3px;
+  background: var(--track);
+  overflow: hidden;
+}
+.trace-meter > i {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--pro), var(--pro-lt));
+}
+
 .stat-strip {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   border: 1px solid var(--line);
@@ -759,6 +925,10 @@ code {
   min-width: 150px;
   padding: 15px 18px;
   border-right: 1px solid var(--line);
+  transition: background 0.15s;
+}
+.stat:hover {
+  background: var(--hover-1);
 }
 .stat:last-child {
   border-right: 0;
@@ -768,6 +938,7 @@ code {
   font-size: 27px;
   color: var(--ivory);
   line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 .stat-k {
   margin-top: 5px;
@@ -778,14 +949,14 @@ code {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--r);
-  padding: 18px;
+  padding: 16px 18px 15px;
   display: flex;
   flex-direction: column;
   transition:
     border-color 0.15s,
     transform 0.15s,
     background 0.15s;
-  min-height: 196px;
+  min-height: 208px;
   text-align: left;
   width: 100%;
 }
@@ -794,21 +965,37 @@ code {
   transform: translateY(-2px);
   background: var(--raised);
 }
+/* Unbuilt modes read as quieter, not as unreadable — the body copy still has
+   to clear contrast, so only the chrome dims. */
 .mode-card.soon {
-  opacity: 0.72;
+  background: var(--sunken);
+}
+.mode-card.soon .mode-glyph {
+  opacity: 0.6;
+}
+.mode-card.soon h4 {
+  color: var(--text);
 }
 .mode-card.soon:hover {
   transform: none;
   border-color: var(--line-2);
 }
+/* Glyph and status share a row, so a long title can never collide with an
+   absolutely-positioned corner chip. */
+.mode-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 13px;
+}
 .mode-glyph {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
+  flex: none;
   border-radius: var(--r-sm);
   border: 1px solid var(--line-2);
   display: grid;
   place-items: center;
-  margin-bottom: 13px;
   background: var(--sunken);
 }
 .mode-card h4 {
@@ -830,60 +1017,135 @@ code {
   gap: 7px;
   flex-wrap: wrap;
 }
-.mode-card .corner {
-  position: absolute;
-  top: 16px;
-  right: 16px;
+.mode-go {
+  margin-left: auto;
+  color: var(--pro);
+  font-size: 13px;
+  opacity: 0;
+  transform: translateX(-5px);
+  transition:
+    opacity 0.15s,
+    transform 0.15s;
+}
+.mode-card:hover .mode-go {
+  opacity: 1;
+  transform: none;
+}
+.mode-card.soon .mode-go {
+  display: none;
 }
 
+/* The steps are a sequence, so they get a spine: a node per stage sitting on
+   a rule that runs the width of the strip. */
+/* The 1px flex gap over a line-coloured backdrop draws every divider, so the
+   strip stays hairline-correct at any wrap without per-cell border rules.
+   Flex rather than grid because this takes 5 steps on the overview and 6 on
+   the debate page — a wrapped step grows to fill its row instead of being
+   left orphaned in a fixed column. */
 .pipeline {
   display: flex;
+  flex-wrap: wrap;
+  gap: 1px;
   border: 1px solid var(--line);
   border-radius: var(--r);
-  background: var(--surface);
+  background: var(--line);
   overflow: hidden;
-  flex-wrap: wrap;
 }
 .pipe-step {
-  flex: 1;
-  min-width: 190px;
-  padding: 16px;
-  border-right: 1px solid var(--line);
+  flex: 1 1 190px;
+  min-width: 0;
+  padding: 15px 16px 17px;
+  background: var(--surface);
 }
-.pipe-step:last-child {
-  border-right: 0;
+.pipe-rail {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 11px;
+}
+.pipe-node {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 50%;
+}
+.pipe-node.pro {
+  background: var(--pro);
+  box-shadow: 0 0 0 3px var(--pro-dim);
+}
+.pipe-node.con {
+  background: var(--con);
+  box-shadow: 0 0 0 3px var(--con-dim);
+}
+.pipe-node.judge {
+  background: var(--judge);
+  box-shadow: 0 0 0 3px var(--judge-dim);
+}
+/* Both sides hold the floor in these stages. A teal core inside an amber ring
+   says that at 7px; a two-stop gradient this small just reads as mud. */
+.pipe-node.split {
+  background: var(--pro);
+  box-shadow: 0 0 0 2px var(--con-line);
+}
+.pipe-line {
+  flex: 1;
+  height: 1px;
+  background: var(--line-2);
 }
 .pipe-n {
   font-family: var(--mono);
   font-size: 10px;
   color: var(--faint);
   letter-spacing: 0.14em;
+  flex: none;
 }
 .pipe-t {
-  margin-top: 7px;
   font-size: 13px;
   color: var(--ivory);
   font-weight: 600;
 }
 .pipe-d {
-  margin-top: 4px;
+  margin-top: 5px;
   font-size: 12px;
   color: var(--muted);
-  line-height: 1.5;
+  line-height: 1.55;
 }
-.pipe-bar {
-  height: 2px;
-  margin-top: 13px;
-  border-radius: 2px;
+
+/* ---------- closing call to action ---------- */
+.cta-band {
+  position: relative;
+  overflow: hidden;
+  margin-top: 44px;
+  padding: 32px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  flex-wrap: wrap;
 }
-.bar-judge {
-  background: var(--judge);
+.cta-band::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse 55% 130% at 92% 50%, var(--pro-soft), transparent 68%);
 }
-.bar-pro {
-  background: var(--pro);
+.cta-band > * {
+  position: relative;
 }
-.bar-split {
-  background: linear-gradient(90deg, var(--pro), var(--con));
+.cta-copy {
+  max-width: 520px;
+}
+
+/* Section heads on the overview get a rule, so each band reads as its own
+   chapter rather than as more of the same scroll. */
+.section-head.ruled {
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 20px;
 }
 
 /* ============================================================ COMPOSER */
