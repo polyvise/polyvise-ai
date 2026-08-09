@@ -14,7 +14,7 @@
     "verify": "npm run typecheck && npm test && npm run build"
   },
   "dependencies": {
-    "@polyvise/core": "0.3.4",
+    "@polyvise/core": "0.4.0",
     "@xyflow/react": "latest",
     "drizzle-orm": "latest",
     "lucide-react": "latest",
