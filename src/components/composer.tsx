@@ -38,7 +38,14 @@ export function Composer() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  /**
+   * The size names count debaters, but the roster the run actually spins up
+   * includes the neutral judge — so duo is three agents and quartet is five.
+   * The lineup rider spells that out; without it the count reads as a
+   * contradiction of the name next to it.
+   */
   const agentCount = councilSize === "duo" ? 3 : 5;
+  const lineup = councilSize === "duo" ? "1v1 + judge" : "2v2 + judge";
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -95,7 +102,9 @@ export function Composer() {
           </span>
           <span className="chip">Cited evidence</span>
           <span className="chip">6 rounds</span>
-          <span className="chip">{agentCount} agents</span>
+          <span className="chip">
+            {agentCount} agents · {lineup}
+          </span>
         </div>
 
         <div className="composer-bar">
