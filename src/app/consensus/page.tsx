@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import type { Route } from "next";
 
 export const metadata: Metadata = {
   title: "Consensus | Polyvise",
@@ -26,7 +28,13 @@ const stages = [
 export default function ConsensusPage() {
   return (
     <section className="page">
-      <span className="eyebrow">Mode concept · not yet in core</span>
+      <div className="row gap8 wrap">
+        <span className="eyebrow">Deliberation mode</span>
+        <span className="chip pro">
+          <span className="dot" />
+          Live
+        </span>
+      </div>
       <h2 className="display d2 mt10">Consensus</h2>
       <p className="lede mt10 mw640">
         Agents answer independently, then see each other&apos;s positions and either revise or defend holding. The
@@ -126,9 +134,17 @@ export default function ConsensusPage() {
         </div>
       </div>
 
+      <div className="hero-cta">
+        <Link href={"/compose" as Route} className="btn btn-primary">
+          Start a consensus run →
+        </Link>
+        <Link href={"/runs" as Route} className="btn">
+          Your past runs
+        </Link>
+      </div>
+
       <p className="meta mt18">
-        The plot above is an illustration of the intended output, not a recorded run — polyvise-core exposes one mode
-        today.
+        The plot above illustrates the shape of the output. Run one to see real positions.
       </p>
     </section>
   );

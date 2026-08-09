@@ -5,7 +5,8 @@ import type { Route } from "next";
 import { FormEvent, useState } from "react";
 import { rememberLocalRun } from "@/lib/local-runs";
 import { defaultSelections, modelCatalog, slots, type SlotId } from "@/lib/model-catalog";
-import type { CouncilSize, DebateRecord } from "@polyvise/core/debate/types";
+import type { CouncilSize, DebateMode, DebateRecord } from "@polyvise/core/debate/types";
+import { modeLabels } from "@/lib/run-record";
 
 type ModelSelections = Record<SlotId, string>;
 
@@ -32,20 +33,32 @@ export function Composer() {
   const router = useRouter();
   const [subject, setSubject] = useState("");
   const [context, setContext] = useState("");
+  const [mode, setMode] = useState<DebateMode>("hybrid_council");
   const [councilSize, setCouncilSize] = useState<CouncilSize>("quartet");
+  const [agentCountChoice, setAgentCountChoice] = useState(5);
   const [models, setModels] = useState<ModelSelections>(defaultSelections);
   const [showRouting, setShowRouting] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   /**
-   * The size names count debaters, but the roster the run actually spins up
-   * includes the neutral judge — so duo is three agents and quartet is five.
-   * The lineup rider spells that out; without it the count reads as a
-   * contradiction of the name next to it.
+   * What the selected mode will actually run, as summary chips.
+   *
+   * For the council, the size names count debaters while the roster includes
+   * the neutral judge — so duo is three agents and quartet is five. The lineup
+   * rider spells that out; without it the count reads as a contradiction of
+   * the name next to it. The other modes have no judge, so they say what they
+   * do have.
    */
-  const agentCount = councilSize === "duo" ? 3 : 5;
-  const lineup = councilSize === "duo" ? "1v1 + judge" : "2v2 + judge";
+  const shape =
+    mode === "consensus"
+      ? [`${agentCountChoice} agents`, "3 rounds", "no judge"]
+      : mode === "advisory_panel"
+        ? ["4 lenses", "advise separately", "chair synthesis"]
+        : [
+            "6 rounds",
+            councilSize === "duo" ? "3 agents · 1v1 + judge" : "5 agents · 2v2 + judge"
+          ];
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -61,7 +74,8 @@ export function Composer() {
         body: JSON.stringify({
           subject,
           context: context.trim() || undefined,
-          mode: "hybrid_council",
+          mode,
+          ...(mode === "consensus" ? { consensus: { agentCount: agentCountChoice, rounds: 3 } } : {}),
           evidence: "cited",
           councilSize,
           models
@@ -98,48 +112,74 @@ export function Composer() {
         <div className="composer-mid">
           <span className="chip">
             <span className="dot" style={{ background: "var(--judge)" }} />
-            Hybrid Council
+            {modeLabels[mode]}
           </span>
           <span className="chip">Cited evidence</span>
-          <span className="chip">6 rounds</span>
-          <span className="chip">
-            {agentCount} agents · {lineup}
-          </span>
+          {shape.map((label) => (
+            <span className="chip" key={label}>
+              {label}
+            </span>
+          ))}
         </div>
 
         <div className="composer-bar">
           <span className="meta">Mode</span>
           <div className="seg">
-            <button type="button" className="on">
-              Hybrid Council
-            </button>
-            <button type="button" disabled title="Not yet available in polyvise-core">
-              Consensus
-            </button>
-            <button type="button" disabled title="Not yet available in polyvise-core">
-              Advisory Panel
-            </button>
+            {(["hybrid_council", "consensus", "advisory_panel"] as const).map((option) => (
+              <button
+                key={option}
+                type="button"
+                className={mode === option ? "on" : undefined}
+                onClick={() => setMode(option)}
+              >
+                {modeLabels[option]}
+              </button>
+            ))}
           </div>
 
-          <span className="meta" style={{ marginLeft: 8 }}>
-            Size
-          </span>
-          <div className="seg">
-            <button
-              type="button"
-              className={councilSize === "duo" ? "on" : undefined}
-              onClick={() => setCouncilSize("duo")}
-            >
-              Duo
-            </button>
-            <button
-              type="button"
-              className={councilSize === "quartet" ? "on" : undefined}
-              onClick={() => setCouncilSize("quartet")}
-            >
-              Quartet
-            </button>
-          </div>
+          {mode === "hybrid_council" ? (
+            <>
+              <span className="meta" style={{ marginLeft: 8 }}>
+                Size
+              </span>
+              <div className="seg">
+                <button
+                  type="button"
+                  className={councilSize === "duo" ? "on" : undefined}
+                  onClick={() => setCouncilSize("duo")}
+                >
+                  Duo
+                </button>
+                <button
+                  type="button"
+                  className={councilSize === "quartet" ? "on" : undefined}
+                  onClick={() => setCouncilSize("quartet")}
+                >
+                  Quartet
+                </button>
+              </div>
+            </>
+          ) : null}
+
+          {mode === "consensus" ? (
+            <>
+              <span className="meta" style={{ marginLeft: 8 }}>
+                Agents
+              </span>
+              <div className="seg">
+                {[3, 5, 7].map((count) => (
+                  <button
+                    key={count}
+                    type="button"
+                    className={agentCountChoice === count ? "on" : undefined}
+                    onClick={() => setAgentCountChoice(count)}
+                  >
+                    {count}
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : null}
 
           <button
             type="button"

@@ -68,7 +68,7 @@ const navGroups: NavGroup[] = [
       {
         href: "/consensus",
         label: "Consensus",
-        tag: { text: "Next" },
+        tag: { text: "Live", live: true },
         icon: icon(
           <>
             <circle cx="6" cy="8" r="3.4" />
@@ -79,7 +79,7 @@ const navGroups: NavGroup[] = [
       {
         href: "/panel",
         label: "Advisory panel",
-        tag: { text: "Next" },
+        tag: { text: "Live", live: true },
         icon: icon(
           <>
             <circle cx="8" cy="5" r="2.2" />

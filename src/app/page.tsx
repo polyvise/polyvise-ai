@@ -19,33 +19,33 @@ const modes = [
   },
   {
     href: "/consensus" as Route,
-    corner: { label: "Next", tone: "neutral" as const },
+    corner: { label: "Live", tone: "pro" as const },
     glyph: (
       <>
         <circle cx="6" cy="8" r="3.4" />
         <circle cx="10" cy="8" r="3.4" />
       </>
     ),
-    glyphTone: "s-muted",
+    glyphTone: "s-pro",
     title: "Consensus",
     body: "Agents answer alone, then revise across rounds. Reports the range they settle into — and which ones never moved.",
     tags: ["Convergent", "N agents"],
-    soon: true
+    soon: false
   },
   {
     href: "/panel" as Route,
-    corner: { label: "Next", tone: "neutral" as const },
+    corner: { label: "Live", tone: "pro" as const },
     glyph: (
       <>
         <circle cx="8" cy="5" r="2.2" />
         <path d="M3.2 13a4.8 4.8 0 019.6 0" strokeLinecap="round" />
       </>
     ),
-    glyphTone: "s-muted",
+    glyphTone: "s-pro",
     title: "Advisory Panel",
     body: "An economist, an ethicist, an operator and a skeptic advise separately. A chair maps where they agree and where they clash.",
     tags: ["Additive", "Lens-based"],
-    soon: true
+    soon: false
   },
   {
     href: "/lab" as Route,

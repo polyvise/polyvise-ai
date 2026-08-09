@@ -1,5 +1,5 @@
 import { getDebate, subscribeToDebate } from "@/server/debate-store";
-import type { DebateLiveEvent } from "@polyvise/core/debate/types";
+import type { RunLiveEvent } from "@/server/debate-store";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +41,7 @@ export async function GET(_request: Request, context: RouteContext) {
         }
       };
 
-      const writeEvent = (event: DebateLiveEvent) => {
+      const writeEvent = (event: RunLiveEvent) => {
         safeEnqueue(encoder.encode(`event: ${event.kind}\ndata: ${JSON.stringify(event)}\n\n`));
         if (event.kind === "complete" || event.kind === "error") {
           setTimeout(closeStream, 50);

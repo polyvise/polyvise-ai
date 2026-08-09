@@ -1,13 +1,14 @@
 import { desc, eq } from "drizzle-orm";
 import { getDb } from "./db/client";
 import { debateRecords, userFeedback } from "./db/schema";
-import type { DebateRecord, UserFeedback } from "@polyvise/core/debate/types";
+import type { UserFeedback } from "@polyvise/core/debate/types";
+import type { PolyviseRecord } from "@/lib/run-record";
 
 export interface DebateRepository {
-  save(debate: DebateRecord): Promise<void>;
-  get(id: string): Promise<DebateRecord | null>;
-  list(): Promise<DebateRecord[]>;
-  listAll(): Promise<DebateRecord[]>;
+  save(debate: PolyviseRecord): Promise<void>;
+  get(id: string): Promise<PolyviseRecord | null>;
+  list(): Promise<PolyviseRecord[]>;
+  listAll(): Promise<PolyviseRecord[]>;
 }
 
 export interface FeedbackRepository {
@@ -17,7 +18,7 @@ export interface FeedbackRepository {
 }
 
 type MemoryRepositoryState = {
-  debates: Map<string, DebateRecord>;
+  debates: Map<string, PolyviseRecord>;
   feedback: Map<string, UserFeedback>;
 };
 
@@ -44,19 +45,19 @@ export class MemoryDebateRepository implements DebateRepository {
     this.state = state;
   }
 
-  async save(debate: DebateRecord): Promise<void> {
+  async save(debate: PolyviseRecord): Promise<void> {
     this.state.debates.set(debate.id, debate);
   }
 
-  async get(id: string): Promise<DebateRecord | null> {
+  async get(id: string): Promise<PolyviseRecord | null> {
     return this.state.debates.get(id) ?? null;
   }
 
-  async list(): Promise<DebateRecord[]> {
+  async list(): Promise<PolyviseRecord[]> {
     return Array.from(this.state.debates.values()).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
 
-  async listAll(): Promise<DebateRecord[]> {
+  async listAll(): Promise<PolyviseRecord[]> {
     return this.list();
   }
 }
@@ -82,7 +83,7 @@ export class MemoryFeedbackRepository implements FeedbackRepository {
 }
 
 export class PostgresDebateRepository implements DebateRepository {
-  async save(debate: DebateRecord): Promise<void> {
+  async save(debate: PolyviseRecord): Promise<void> {
     const now = new Date(debate.updatedAt);
     await getDb()
       .insert(debateRecords)
@@ -101,19 +102,19 @@ export class PostgresDebateRepository implements DebateRepository {
       });
   }
 
-  async get(id: string): Promise<DebateRecord | null> {
+  async get(id: string): Promise<PolyviseRecord | null> {
     const rows = await getDb().select().from(debateRecords).where(eq(debateRecords.id, id)).limit(1);
-    return (rows[0]?.record as DebateRecord | undefined) ?? null;
+    return (rows[0]?.record as PolyviseRecord | undefined) ?? null;
   }
 
-  async list(): Promise<DebateRecord[]> {
+  async list(): Promise<PolyviseRecord[]> {
     const rows = await getDb().select().from(debateRecords).orderBy(desc(debateRecords.updatedAt)).limit(50);
-    return rows.map((row) => row.record as DebateRecord);
+    return rows.map((row) => row.record as PolyviseRecord);
   }
 
-  async listAll(): Promise<DebateRecord[]> {
+  async listAll(): Promise<PolyviseRecord[]> {
     const rows = await getDb().select().from(debateRecords).orderBy(desc(debateRecords.updatedAt));
-    return rows.map((row) => row.record as DebateRecord);
+    return rows.map((row) => row.record as PolyviseRecord);
   }
 }
 
@@ -192,7 +193,7 @@ export class FirestoreDebateRepository implements DebateRepository {
     this.collection = collection;
   }
 
-  async save(debate: DebateRecord): Promise<void> {
+  async save(debate: PolyviseRecord): Promise<void> {
     await this.request(`documents/${this.collection}/${encodeURIComponent(debate.id)}`, {
       method: "PATCH",
       body: JSON.stringify({
@@ -205,7 +206,7 @@ export class FirestoreDebateRepository implements DebateRepository {
     });
   }
 
-  async get(id: string): Promise<DebateRecord | null> {
+  async get(id: string): Promise<PolyviseRecord | null> {
     const response = await this.request(`documents/${this.collection}/${encodeURIComponent(id)}`, {
       method: "GET",
       allowNotFound: true
@@ -218,7 +219,7 @@ export class FirestoreDebateRepository implements DebateRepository {
     return parseFirestoreDebate(response);
   }
 
-  async list(): Promise<DebateRecord[]> {
+  async list(): Promise<PolyviseRecord[]> {
     const query = new URLSearchParams({
       pageSize: "50",
       orderBy: "updatedAt desc"
@@ -237,8 +238,8 @@ export class FirestoreDebateRepository implements DebateRepository {
     });
   }
 
-  async listAll(): Promise<DebateRecord[]> {
-    const debates: DebateRecord[] = [];
+  async listAll(): Promise<PolyviseRecord[]> {
+    const debates: PolyviseRecord[] = [];
     let pageToken: string | undefined;
 
     do {
@@ -497,7 +498,7 @@ async function firestoreRequest(
   return payload as Record<string, unknown>;
 }
 
-function parseFirestoreDebate(document: unknown): DebateRecord | null {
+function parseFirestoreDebate(document: unknown): PolyviseRecord | null {
   const fields = (document as { fields?: { recordJson?: { stringValue?: string } } })?.fields;
   const recordJson = fields?.recordJson?.stringValue;
 
@@ -505,7 +506,7 @@ function parseFirestoreDebate(document: unknown): DebateRecord | null {
     return null;
   }
 
-  return JSON.parse(recordJson) as DebateRecord;
+  return JSON.parse(recordJson) as PolyviseRecord;
 }
 
 function parseFirestoreFeedback(document: unknown): UserFeedback | null {
