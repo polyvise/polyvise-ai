@@ -69,7 +69,7 @@ export function YourRuns() {
       <div className="card card-pad mt18">
         <h4 className="card-title">No runs from this browser yet.</h4>
         <p className="small mt6">
-          <Link href={"/compose" as Route} style={{ color: "var(--pro)" }}>
+          <Link href={"/" as Route} className="link">
             Start one
           </Link>{" "}
           and it will appear here.

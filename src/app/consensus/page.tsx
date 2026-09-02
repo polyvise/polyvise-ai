@@ -135,8 +135,8 @@ export default function ConsensusPage() {
       </div>
 
       <div className="hero-cta">
-        <Link href={"/compose" as Route} className="btn btn-primary">
-          Start a consensus run →
+        <Link href={"/" as Route} className="btn btn-primary btn-lg">
+          Ask a question
         </Link>
         <Link href={"/runs" as Route} className="btn">
           Your past runs

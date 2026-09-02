@@ -214,7 +214,7 @@ export function AdvisoryPanelSurface({
 
   return (
     <section className="page">
-      <RunHead record={record} mode="Advisory Panel" tone="" />
+      <RunHead record={record} mode="Advisory panel" tone="" />
 
       <div className="card mt24">
         <div className="card-head">

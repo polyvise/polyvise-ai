@@ -17,17 +17,81 @@ const examples = [
   "Should schools allow phones during the day?"
 ];
 
-const slotTone: Record<SlotId, "pro" | "con" | "judge"> = {
-  quick: "pro",
-  deep: "con",
-  judge: "judge"
+const slotTone: Record<SlotId, "pro" | "con" | "judge" | "neutral"> = {
+  yes: "pro",
+  no: "con",
+  deep: "neutral",
+  judge: "judge",
+  quick: "neutral"
 };
 
 const slotLabel: Record<SlotId, string> = {
-  quick: "Pro",
-  deep: "Con",
-  judge: "Judge"
+  yes: "For",
+  no: "Against",
+  deep: "Both sides",
+  judge: "Neutral",
+  quick: "Setup"
 };
+
+/**
+ * One card per way of deliberating, each with a diagram of who is in the
+ * room. The names are the ones a newcomer can parse; the engine's own
+ * labels stay in modeLabels for the run record.
+ */
+const modeOptions: { id: DebateMode; title: string; body: string; dots: React.ReactNode; start: string }[] = [
+  {
+    id: "hybrid_council",
+    title: "Debate",
+    body: "Two argue for, two against, a judge scores it. Best for yes-or-no decisions.",
+    start: "Start the debate",
+    dots: (
+      <>
+        <span className="d pro" />
+        <span className="d pro" />
+        <span className="vs">vs</span>
+        <span className="d con" />
+        <span className="d con" />
+        <span className="bar" />
+        <span className="d judge" />
+      </>
+    )
+  },
+  {
+    id: "consensus",
+    title: "Consensus",
+    body: "Several models answer alone, then revise until they settle. Best for estimates.",
+    start: "Start the consensus run",
+    dots: (
+      <>
+        <span className="d grey" />
+        <span className="d grey" style={{ opacity: 0.8 }} />
+        <span className="d grey" style={{ opacity: 0.6 }} />
+        <span className="d grey" style={{ opacity: 0.45 }} />
+        <span className="d grey" style={{ opacity: 0.3 }} />
+        <svg width="16" height="12" viewBox="0 0 16 12" fill="none" className="s-muted" strokeWidth={1.5} strokeLinecap="round" aria-hidden="true">
+          <path d="M1 6h13M10 2l4 4-4 4" />
+        </svg>
+        <span className="d pro" />
+      </>
+    )
+  },
+  {
+    id: "advisory_panel",
+    title: "Advisory panel",
+    body: "An economist, an ethicist, an operator and a skeptic each advise. Best for strategy.",
+    start: "Convene the panel",
+    dots: (
+      <>
+        <span className="d lens1" />
+        <span className="d lens2" />
+        <span className="d lens3" />
+        <span className="d lens4" />
+        <span className="bar" />
+        <span className="d judge" />
+      </>
+    )
+  }
+];
 
 export function Composer() {
   const router = useRouter();
@@ -37,32 +101,49 @@ export function Composer() {
   const [councilSize, setCouncilSize] = useState<CouncilSize>("quartet");
   const [agentCountChoice, setAgentCountChoice] = useState(5);
   const [models, setModels] = useState<ModelSelections>(defaultSelections);
+  // The con side mirrors the pro side until it is changed on its own, so
+  // picking one model for "the debaters" is a single choice.
+  const [conFollowsPro, setConFollowsPro] = useState(true);
   const [showRouting, setShowRouting] = useState(false);
+
+  function chooseModel(slot: SlotId, model: string) {
+    if (slot === "yes") {
+      setModels((current) => ({ ...current, yes: model, ...(conFollowsPro ? { no: model } : {}) }));
+      return;
+    }
+    if (slot === "no") {
+      setConFollowsPro(false);
+    }
+    setModels((current) => ({ ...current, [slot]: model }));
+  }
+
+  function matchConToPro() {
+    setConFollowsPro(true);
+    setModels((current) => ({ ...current, no: current.yes }));
+  }
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   /**
-   * What the selected mode will actually run, as summary chips.
+   * What the selected mode will actually run, in plain words.
    *
    * For the council, the size names count debaters while the roster includes
-   * the neutral judge — so duo is three agents and quartet is five. The lineup
-   * rider spells that out; without it the count reads as a contradiction of
-   * the name next to it. The other modes have no judge, so they say what they
-   * do have.
+   * the neutral judge — so duo is three agents and quartet is five. The other
+   * modes have no judge, so they say what they do have.
    */
-  const shape =
+  const facts =
     mode === "consensus"
-      ? [`${agentCountChoice} agents`, "3 rounds", "no judge"]
+      ? ["Cited evidence", `${agentCountChoice} agents`, "3 rounds", "no judge"]
       : mode === "advisory_panel"
-        ? ["4 lenses", "advise separately", "chair synthesis"]
-        : [
-            "6 rounds",
-            councilSize === "duo" ? "3 agents · 1v1 + judge" : "5 agents · 2v2 + judge"
-          ];
+        ? ["Cited evidence", "4 lenses", "a chair writes it up"]
+        : ["Cited evidence", "6 rounds", councilSize === "duo" ? "1 vs 1 with a judge" : "2 vs 2 with a judge"];
+
+  const selected = modeOptions.find((option) => option.id === mode) ?? modeOptions[0];
+  const ready = subject.trim().length >= 4 && !isSubmitting;
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (subject.trim().length < 4 || isSubmitting) return;
+    if (!ready) return;
 
     setIsSubmitting(true);
     setError(null);
@@ -84,93 +165,90 @@ export function Composer() {
 
       const payload = (await response.json()) as { debate?: DebateRecord; error?: string };
       if (!response.ok || !payload.debate) {
-        throw new Error(payload.error ?? "Unable to start the debate.");
+        throw new Error(payload.error ?? "Unable to start the run.");
       }
 
       rememberLocalRun(payload.debate.id);
       router.push(`/runs/${payload.debate.id}` as Route);
     } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : "Unable to start the debate.");
+      setError(caughtError instanceof Error ? caughtError.message : "Unable to start the run.");
       setIsSubmitting(false);
     }
   }
 
   return (
     <form onSubmit={handleSubmit}>
-      <div className="composer mt24">
+      <div className="composer">
         <div className="composer-top">
           <textarea
             className="q-input"
             rows={2}
             value={subject}
             onChange={(event) => setSubject(event.target.value)}
-            placeholder="Should a 40-person company adopt AI customer support this year?"
-            aria-label="Question"
+            placeholder="Should a 40-person company move customer support to AI-first this year?"
+            aria-label="Your question"
           />
         </div>
 
         <div className="composer-mid">
-          <span className="chip">
-            <span className="dot" style={{ background: "var(--judge)" }} />
-            {modeLabels[mode]}
-          </span>
-          <span className="chip">Cited evidence</span>
-          {shape.map((label) => (
-            <span className="chip" key={label}>
-              {label}
-            </span>
-          ))}
-        </div>
-
-        <div className="composer-bar">
-          <span className="meta">Mode</span>
-          <div className="seg">
-            {(["hybrid_council", "consensus", "advisory_panel"] as const).map((option) => (
-              <button
-                key={option}
-                type="button"
-                className={mode === option ? "on" : undefined}
-                onClick={() => setMode(option)}
-              >
-                {modeLabels[option]}
-              </button>
-            ))}
+          <div className="mode-pick" role="radiogroup" aria-label="How the models deliberate">
+            {modeOptions.map((option) => {
+              const on = option.id === mode;
+              return (
+                <button
+                  type="button"
+                  key={option.id}
+                  role="radio"
+                  aria-checked={on}
+                  className={`mode-opt${on ? " on" : ""}`}
+                  onClick={() => setMode(option.id)}
+                >
+                  <span className="dots" aria-hidden="true">
+                    {option.dots}
+                  </span>
+                  <h4>{option.title}</h4>
+                  <p>{option.body}</p>
+                </button>
+              );
+            })}
           </div>
 
           {mode === "hybrid_council" ? (
-            <>
-              <span className="meta" style={{ marginLeft: 8 }}>
-                Size
-              </span>
-              <div className="seg">
+            <div className="row gap10 wrap mt14">
+              <span className="small">Council size</span>
+              <div className="seg" role="radiogroup" aria-label="Council size">
                 <button
                   type="button"
+                  role="radio"
+                  aria-checked={councilSize === "duo"}
                   className={councilSize === "duo" ? "on" : undefined}
                   onClick={() => setCouncilSize("duo")}
                 >
-                  Duo
+                  Duo · 1 vs 1
                 </button>
                 <button
                   type="button"
+                  role="radio"
+                  aria-checked={councilSize === "quartet"}
                   className={councilSize === "quartet" ? "on" : undefined}
                   onClick={() => setCouncilSize("quartet")}
                 >
-                  Quartet
+                  Quartet · 2 vs 2
                 </button>
               </div>
-            </>
+            </div>
           ) : null}
 
           {mode === "consensus" ? (
-            <>
-              <span className="meta" style={{ marginLeft: 8 }}>
-                Agents
-              </span>
-              <div className="seg">
+            <div className="row gap10 wrap mt14">
+              <span className="small">How many models</span>
+              <div className="seg" role="radiogroup" aria-label="Number of agents">
                 {[3, 5, 7].map((count) => (
                   <button
                     key={count}
                     type="button"
+                    role="radio"
+                    aria-checked={agentCountChoice === count}
                     className={agentCountChoice === count ? "on" : undefined}
                     onClick={() => setAgentCountChoice(count)}
                   >
@@ -178,21 +256,38 @@ export function Composer() {
                   </button>
                 ))}
               </div>
-            </>
+            </div>
           ) : null}
+        </div>
 
-          <button
-            type="button"
-            className="btn btn-sm btn-ghost push"
-            onClick={() => setShowRouting((open) => !open)}
-            aria-expanded={showRouting}
-          >
-            Model routing {showRouting ? "▴" : "▾"}
-          </button>
-          <button type="submit" className="btn btn-primary btn-sm" disabled={subject.trim().length < 4 || isSubmitting}>
-            {isSubmitting ? <span className="spin sm" /> : null}
-            {isSubmitting ? "Starting…" : "Start run →"}
-          </button>
+        <div className="composer-bar">
+          <div className="composer-facts">
+            {facts.map((fact, index) => (
+              <span className="row gap10" key={fact}>
+                {index > 0 ? <span className="sep" /> : null}
+                {fact}
+              </span>
+            ))}
+          </div>
+          <div className="composer-actions">
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => setShowRouting((open) => !open)}
+              aria-expanded={showRouting}
+            >
+              {showRouting ? "Hide model choices" : "Choose models"}
+            </button>
+            <button type="submit" className="btn btn-primary btn-lg" disabled={!ready}>
+              {isSubmitting ? <span className="spin sm" /> : null}
+              {isSubmitting ? "Starting…" : selected.start}
+              {isSubmitting ? null : (
+                <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M3 10h13M11 5l5 5-5 5" />
+                </svg>
+              )}
+            </button>
+          </div>
         </div>
 
         {showRouting ? (
@@ -206,11 +301,20 @@ export function Composer() {
                       {slotLabel[slot.id]}
                     </span>
                     <span className="lbl">{slot.title}</span>
+                    {slot.id === "no" ? (
+                      conFollowsPro ? (
+                        <span className="meta push">same as pro</span>
+                      ) : (
+                        <button type="button" className="link push" style={{ fontSize: 13 }} onClick={matchConToPro}>
+                          Match pro
+                        </button>
+                      )
+                    ) : null}
                   </div>
                   <select
                     className="select"
                     value={models[slot.id]}
-                    onChange={(event) => setModels({ ...models, [slot.id]: event.target.value })}
+                    onChange={(event) => chooseModel(slot.id, event.target.value)}
                     aria-label={slot.title}
                   >
                     {modelCatalog.map((option) => (
@@ -224,12 +328,12 @@ export function Composer() {
               ))}
             </div>
             <p className="meta mt14">
-              Routing is set per slot, so you can put a cheap model against an expensive one and compare them in the
-              telemetry afterwards.
+              Each seat can run a different model. The telemetry tab on every run shows what each seat cost and how
+              long it took.
             </p>
 
-            <div className="mt18" style={{ paddingTop: 14, borderTop: "1px solid var(--line)" }}>
-              <label htmlFor="context" className="lbl" style={{ fontSize: 12, fontWeight: 600, color: "var(--ivory)" }}>
+            <div className="mt18" style={{ paddingTop: 18, borderTop: "1px solid var(--line)" }}>
+              <label htmlFor="context" className="lbl">
                 Context
               </label>
               <p className="meta mt6">
@@ -240,7 +344,7 @@ export function Composer() {
                 className="ctx-input mt10"
                 value={context}
                 onChange={(event) => setContext(event.target.value)}
-                placeholder="Optional. Anything the agents should treat as given."
+                placeholder="Optional. Anything the models should treat as given."
               />
             </div>
           </div>
@@ -248,11 +352,11 @@ export function Composer() {
       </div>
 
       {error ? (
-        <div className="callout alert mt18">
+        <div className="callout alert mt18" style={{ maxWidth: 920, margin: "18px auto 0" }}>
           <svg
             className="ci"
-            width="15"
-            height="15"
+            width="16"
+            height="16"
             viewBox="0 0 16 16"
             fill="none"
             stroke="currentColor"
@@ -270,40 +374,21 @@ export function Composer() {
         </div>
       ) : null}
 
-      <div className="mt24">
-        <span className="eyebrow">Try one</span>
-        <div className="example-row">
-          {examples.map((example) => (
-            <button key={example} type="button" className="example" onClick={() => setSubject(example)}>
-              {example}
-            </button>
-          ))}
-        </div>
+      <div className="example-row">
+        <span className="meta" style={{ alignSelf: "center", marginRight: 4 }}>
+          Or try
+        </span>
+        {examples.map((example) => (
+          <button key={example} type="button" className="example" onClick={() => setSubject(example)}>
+            {example}
+          </button>
+        ))}
       </div>
 
-      <div className="callout note mt24">
-        <svg
-          className="ci"
-          width="15"
-          height="15"
-          viewBox="0 0 16 16"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={1.4}
-          style={{ color: "var(--muted)" }}
-          aria-hidden="true"
-        >
-          <circle cx="8" cy="8" r="6.2" />
-          <path d="M8 7.4v3.4M8 5.2v.6" strokeLinecap="round" />
-        </svg>
-        <div>
-          <h5>Medical, legal, financial and safety topics are flagged</h5>
-          <p>
-            The framing step classifies the stakes and attaches a disclaimer to the verdict instead of refusing the
-            question. You&apos;ll see the notice on the run once framing completes.
-          </p>
-        </div>
-      </div>
+      <p className="meta mt18" style={{ textAlign: "center", maxWidth: 620, margin: "18px auto 0" }}>
+        Medical, legal, financial and safety questions run as normal. The framing step notes the stakes and the verdict
+        carries a disclaimer.
+      </p>
     </form>
   );
 }

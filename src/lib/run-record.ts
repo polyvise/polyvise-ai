@@ -101,7 +101,7 @@ export function countAgentOutputs(run: StoredRun): number {
 }
 
 export const modeLabels: Record<DebateMode, string> = {
-  hybrid_council: "Hybrid Council",
+  hybrid_council: "Debate",
   consensus: "Consensus",
-  advisory_panel: "Advisory Panel"
+  advisory_panel: "Advisory panel"
 };

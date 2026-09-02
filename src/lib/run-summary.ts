@@ -60,7 +60,7 @@ export function toRunSummary(record: PolyviseRecord): RunSummary {
     const { chair, advice } = panel.result;
     return {
       ...shared,
-      mode: "Panel",
+      mode: "Advisory panel",
       verdict: isComplete ? (chair.conflicts.length ? "Split panel" : "Aligned") : null,
       verdictTone: isComplete ? (chair.conflicts.length ? "con" : "pro") : null,
       confidence: isComplete ? Math.round(chair.confidence) : null,
@@ -72,7 +72,7 @@ export function toRunSummary(record: PolyviseRecord): RunSummary {
   const scorecard = debate?.scorecard;
   return {
     ...shared,
-    mode: debate?.councilSize === "duo" ? "Duo" : "Council",
+    mode: debate?.councilSize === "duo" ? "Debate · 1 vs 1" : "Debate · 2 vs 2",
     verdict: isComplete && scorecard ? formatRecommendation(scorecard.recommendation) : null,
     verdictTone: isComplete && scorecard ? recommendationTone(scorecard.recommendation) : null,
     confidence: isComplete && scorecard ? Math.round(scorecard.confidence * 100) : null,

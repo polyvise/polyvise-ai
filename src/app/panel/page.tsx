@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { Route } from "next";
 
 export const metadata: Metadata = {
-  title: "Advisory Panel | Polyvise",
+  title: "Advisory panel | Polyvise",
   description: "A mode where named perspectives advise separately and a chair writes up the overlap."
 };
 
@@ -44,7 +44,7 @@ export default function PanelPage() {
           Live
         </span>
       </div>
-      <h2 className="display d2 mt10">Advisory Panel</h2>
+      <h2 className="display d2 mt10">Advisory panel</h2>
       <p className="lede mt10 mw640">
         Each advisor works from a named perspective and answers in its own voice. Nobody argues against anyone else and
         no winner is declared — a chair reads the advice and writes up where it agrees and where it doesn&apos;t.
@@ -87,8 +87,8 @@ export default function PanelPage() {
       </div>
 
       <div className="hero-cta">
-        <Link href={"/compose" as Route} className="btn btn-primary">
-          Start a panel run →
+        <Link href={"/" as Route} className="btn btn-primary btn-lg">
+          Ask a question
         </Link>
         <Link href={"/runs" as Route} className="btn">
           Your past runs

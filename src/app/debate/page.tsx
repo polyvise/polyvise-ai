@@ -5,7 +5,7 @@ import { roundLabels, roundOrder } from "@/lib/run-view";
 
 export const metadata: Metadata = {
   title: "Debate | Polyvise",
-  description: "Hybrid Council — two agents for, two against, and a neutral judge."
+  description: "Debate — two models for, two against, and a neutral judge."
 };
 
 const roundDetail: Record<string, string> = {
@@ -35,7 +35,7 @@ export default function DebateModePage() {
           Live
         </span>
       </div>
-      <h2 className="display d2 mt10">Hybrid Council</h2>
+      <h2 className="display d2 mt10">Debate</h2>
       <p className="lede mt10 mw640">
         Two agents argue for the resolution, two argue against it, and a neutral judge scores the result across
         evidence, practicality, risk, fairness and reversibility. Six rounds, ending in a verdict with a confidence
@@ -43,8 +43,8 @@ export default function DebateModePage() {
       </p>
 
       <div className="hero-cta">
-        <Link href={"/compose" as Route} className="btn btn-primary">
-          Start a run →
+        <Link href={"/" as Route} className="btn btn-primary btn-lg">
+          Ask a question
         </Link>
         <Link href={"/runs" as Route} className="btn">
           Your past runs

@@ -98,7 +98,7 @@ describe("run summaries across modes", () => {
     });
     const summary = toRunSummary(await completion);
 
-    expect(summary.mode).toBe("Panel");
+    expect(summary.mode).toBe("Advisory panel");
     expect(["Aligned", "Split panel"]).toContain(summary.verdict);
     expect(summary.detail).toBe("4 lenses");
   });

@@ -63,7 +63,8 @@ const stages: { id: DebateStatus; label: string }[] = [
 export function RunSurface({ record }: { record: DebateRecord }) {
   const router = useRouter();
   const [state, dispatch] = useReducer(runViewReducer, record, initialStateFromRecord);
-  const [tab, setTab] = useState<TabId>("floor");
+  // A finished run opens on its verdict; one still in flight opens on the floor.
+  const [tab, setTab] = useState<TabId>(record.status === "complete" ? "verdict" : "floor");
   const eventSourceRef = useRef<EventSource | null>(null);
   const recordStamp = record.updatedAt;
 
@@ -130,8 +131,8 @@ export function RunSurface({ record }: { record: DebateRecord }) {
       />
 
       <div className="tabs" role="tablist">
-        <Tab id="floor" current={tab} onSelect={setTab} label="Debate floor" count={state.turns.length} />
         <Tab id="verdict" current={tab} onSelect={setTab} label="Verdict" />
+        <Tab id="floor" current={tab} onSelect={setTab} label="Debate floor" count={state.turns.length} />
         <Tab id="evidence" current={tab} onSelect={setTab} label="Evidence" count={state.sources.length} />
         <Tab id="graph" current={tab} onSelect={setTab} label="Argument map" />
         <Tab id="telemetry" current={tab} onSelect={setTab} label="Telemetry" count={calls.length} />
@@ -172,22 +173,28 @@ function RunHeader({
   const startedAt = record.latestRun?.startedAt ?? record.createdAt;
   const completedAt = record.latestRun?.completedAt;
 
+  const statusTone = state.status === "failed" ? "alert" : state.status === "complete" ? "pro" : "neutral";
+
   return (
     <div className="run-head">
-      <div className="row gap8 wrap">
-        <span className="chip pro">
-          <span className="dot" />
-          Hybrid Council
-        </span>
-        <span className="chip">{councilSize}</span>
-        {state.topicKind ? <span className="chip">{state.topicKind}</span> : null}
-        <span className="meta push">
-          <Elapsed startedAt={startedAt} completedAt={completedAt} running={!state.done} /> ·{" "}
+      <div className="crumbs">
+        <Link href={"/runs" as Route}>Your runs</Link>
+        <span>/</span>
+        <span>Debate · {councilSize === "Duo" ? "1 vs 1" : "2 vs 2"} with a judge</span>
+        {state.topicKind ? (
+          <>
+            <span>/</span>
+            <span>{state.topicKind}</span>
+          </>
+        ) : null}
+        <span className={`chip push ${statusTone}`}>
+          {statusTone !== "neutral" ? <span className="dot" /> : <span className="spin sm" />}
+          {stageLabel(state.status)} · <Elapsed startedAt={startedAt} completedAt={completedAt} running={!state.done} /> ·{" "}
           {formatCost(totalCost)}
         </span>
       </div>
 
-      <h2 className="display d3 run-res">{state.resolution ?? state.subject}</h2>
+      <h1 className="display d2 run-res">{state.resolution ?? state.subject}</h1>
 
       {state.highStakes ? (
         <Callout
@@ -228,7 +235,7 @@ function Elapsed({
 
   return (
     <>
-      {mm}:{ss} elapsed
+      {mm}:{ss}
     </>
   );
 }
@@ -325,7 +332,7 @@ function DebateFloor({
           <div className="floor-round" key={round}>
             <div className="round-head">
               <span className="eyebrow">
-                Round {String(roundIndex + 1).padStart(2, "0")} — {roundLabels[round]}
+                Round {roundIndex + 1} · {roundLabels[round]}
               </span>
               <hr className="rule" />
             </div>
@@ -356,34 +363,40 @@ function DebateFloor({
 }
 
 function Turn({ turn, state }: { turn: RoundTurn; state: RunViewState }) {
-  const agent = [...(state.teams?.pro ?? []), ...(state.teams?.con ?? [])].find(
-    (candidate) => candidate.id === turn.agentId
-  );
+  const proIndex = (state.teams?.pro ?? []).findIndex((candidate) => candidate.id === turn.agentId);
+  const conIndex = (state.teams?.con ?? []).findIndex((candidate) => candidate.id === turn.agentId);
+  const agent = proIndex >= 0 ? state.teams?.pro[proIndex] : conIndex >= 0 ? state.teams?.con[conIndex] : undefined;
   // The model that actually wrote this turn, when the engine recorded it
   // (core 0.3.4+). Otherwise the best available answer is the model the
   // speaking agent was assigned.
   const model = turn.model ?? agent?.model ?? state.teams?.judge.model;
   const tone = turn.side === "pro" ? "pro" : turn.side === "con" ? "con" : "judge";
+  const initials = proIndex >= 0 ? `P${proIndex + 1}` : conIndex >= 0 ? `C${conIndex + 1}` : "J";
+  const sideLabel = turn.side === "pro" ? "arguing for" : turn.side === "con" ? "arguing against" : "judge";
 
   return (
     <article className={`turn ${tone}`}>
       <div className="turn-h">
-        <span className="turn-name">{turn.agentName}</span>
-        {agent?.role ? <span className="turn-role">{agent.role}</span> : null}
-        <span className={`chip ${tone} push`}>
-          <span className="dot" />
-          {turn.side}
+        <span className={`av lg ${tone}`} aria-hidden="true">
+          {initials}
         </span>
+        <div className="turn-who">
+          <span className="turn-name">{turn.agentName}</span>
+          <span className="turn-role">
+            {sideLabel}
+            {agent?.role ? ` · ${agent.role}` : ""}
+            {model ? ` · ${model}` : ""}
+          </span>
+        </div>
       </div>
       <div className="turn-body">{turn.content}</div>
-      {turn.sourceIds.length > 0 || model ? (
+      {turn.sourceIds.length > 0 ? (
         <div className="turn-foot">
           {turn.sourceIds.map((sourceId) => (
             <span className="cite" key={sourceId} title={sourceId}>
               {sourceRef(state.sources, sourceId)}
             </span>
           ))}
-          {model ? <span className="meta push">{model}</span> : null}
         </div>
       ) : null}
     </article>
@@ -430,7 +443,7 @@ function VerdictTab({ state, record }: { state: RunViewState; record: DebateReco
           ))}
         </ul>
         <div className="row gap8 wrap mt18">
-          <Link href={"/compose" as Route} className="btn">
+          <Link href={"/" as Route} className="btn">
             Re-run with different models
           </Link>
         </div>
@@ -475,17 +488,10 @@ function VerdictTab({ state, record }: { state: RunViewState; record: DebateReco
               </p>
             </div>
             <div className="gauge">
-              <div className="eyebrow">Confidence</div>
-              <div className="gauge-v">
-                {confidence}
-                <span className="gauge-pct">%</span>
-              </div>
-              <div className="gauge-track">
-                <div className="gauge-fill" style={{ width: `${confidence}%` }} />
-              </div>
-              <div className="meta mt6">
-                {proLead.length} of {scorecard.categories.length} categories to pro
-              </div>
+              <ConfidenceRing value={confidence} />
+              <span className="meta">
+                {proLead.length} of {scorecard.categories.length} dimensions to the {proLead.length >= conLead.length ? "yes" : "no"} side
+              </span>
             </div>
           </div>
 
@@ -495,23 +501,17 @@ function VerdictTab({ state, record }: { state: RunViewState; record: DebateReco
               <div className="balance-con" style={{ width: `${100 - proShare}%` }} />
             </div>
             <div className="balance-key">
-              <span className="meta key-pro">
-                PRO {proShare}
-                {proLead.length ? ` — ${proLead.map((category) => category.name).join(", ")}` : ""}
-              </span>
-              <span className="meta key-con">
-                {100 - proShare} CON
-                {conLead.length ? ` — ${conLead.map((category) => category.name).join(", ")}` : ""}
-              </span>
+              <span className="key-pro">For · {proShare}</span>
+              <span className="key-con">{100 - proShare} · Against</span>
             </div>
           </div>
         </div>
 
-        <div className="card-head" style={{ borderTop: "1px solid var(--line)" }}>
-          <span className="card-title">Judge scorecard</span>
-          {state.teams ? <span className="meta push">{state.teams.judge.model} · neutral slot</span> : null}
-        </div>
-        <div className="card-pad" style={{ paddingTop: 6 }}>
+        <div className="verdict-scores">
+          <div className="row gap10 wrap" style={{ marginBottom: 6 }}>
+            <span className="card-title">How the judge scored it</span>
+            {state.teams ? <span className="agent-m push">{state.teams.judge.model} · neutral seat</span> : null}
+          </div>
           {scorecard.categories.map((category) => {
             const categoryTotal = category.pro + category.con || 1;
             const proWidth = Math.round((category.pro / categoryTotal) * 100);
@@ -544,7 +544,7 @@ function VerdictTab({ state, record }: { state: RunViewState; record: DebateReco
       </div>
 
       <div className="row gap8 wrap mt18">
-        <Link href={"/compose" as Route} className="btn">
+        <Link href={"/" as Route} className="btn">
           Re-run with different models
         </Link>
         <a className="btn" href={`/api/debates/${record.id}`} download={`${record.id}.json`}>
@@ -554,6 +554,36 @@ function VerdictTab({ state, record }: { state: RunViewState; record: DebateReco
 
       <Followups record={record} />
     </div>
+  );
+}
+
+/** The confidence figure as a ring: 132px, the arc reads clockwise from the top. */
+function ConfidenceRing({ value }: { value: number }) {
+  const radius = 56;
+  const circumference = 2 * Math.PI * radius;
+  const filled = (Math.max(0, Math.min(100, value)) / 100) * circumference;
+
+  return (
+    <svg className="gauge-ring" viewBox="0 0 132 132" role="img" aria-label={`${value}% confidence`}>
+      <circle cx="66" cy="66" r={radius} fill="none" className="gauge-track" strokeWidth="10" />
+      <circle
+        cx="66"
+        cy="66"
+        r={radius}
+        fill="none"
+        className="gauge-fill"
+        strokeWidth="10"
+        strokeLinecap="round"
+        strokeDasharray={`${filled} ${circumference}`}
+        transform="rotate(-90 66 66)"
+      />
+      <text x="66" y="62" textAnchor="middle" className="gauge-v">
+        {value}
+      </text>
+      <text x="66" y="84" textAnchor="middle" className="gauge-pct" fontFamily="var(--ui)">
+        confidence
+      </text>
+    </svg>
   );
 }
 
@@ -626,20 +656,20 @@ function Followups({ record }: { record: DebateRecord }) {
   return (
     <div className="card mt18">
       <div className="card-head">
-        <span className="card-title">Ask a follow-up</span>
+        <span className="card-title">Ask the judge a follow-up</span>
         {record.followups.length ? <span className="meta push">{record.followups.length} answered</span> : null}
       </div>
       <div className="card-pad">
-        <form onSubmit={handleSubmit} className="row gap8 wrap">
+        <form onSubmit={handleSubmit} className="row gap10 wrap">
           <input
-            className="select"
-            style={{ flex: 1, minWidth: 220, fontFamily: "var(--ui)", fontSize: "12.5px", padding: "8px 10px" }}
+            className="ctx-input"
+            style={{ flex: 1, minWidth: 220, minHeight: 0, height: "var(--ctl)", padding: "0 14px", resize: "none" }}
             value={question}
             onChange={(event) => setQuestion(event.target.value)}
-            placeholder="Ask about risks, evidence, or what would change the answer."
+            placeholder="What if we only did email, not chat?"
             aria-label="Follow-up question"
           />
-          <button type="submit" className="btn btn-primary btn-sm" disabled={isLoading || question.trim().length < 4}>
+          <button type="submit" className="btn btn-primary" disabled={isLoading || question.trim().length < 4}>
             {isLoading ? <span className="spin sm" /> : null}
             Ask
           </button>
@@ -776,10 +806,12 @@ function slotForRole(role: string): { label: string; tone: string } {
   if (normalized.includes("judge") || normalized.includes("summary") || normalized.includes("scorecard")) {
     return { label: "judge", tone: "judge" };
   }
-  if (normalized.includes("yes frog")) return { label: "pro", tone: "pro" };
-  if (normalized.includes("no frog")) return { label: "con", tone: "con" };
-  if (normalized.includes("claim") || normalized.includes("rebuttal")) return { label: "deep", tone: "con" };
-  return { label: "quick", tone: "pro" };
+  // Mirrors the engine's own routing (modelForRole): side names win, then
+  // claims, then everything else lands on the framing seat.
+  if (normalized.includes("yes frog")) return { label: "pro side", tone: "pro" };
+  if (normalized.includes("no frog")) return { label: "con side", tone: "con" };
+  if (normalized.includes("claim") || normalized.includes("rebuttal")) return { label: "claims", tone: "neutral" };
+  return { label: "framing", tone: "neutral" };
 }
 
 function TelemetryTab({ calls, totalCost }: { calls: ModelSnapshot[]; totalCost: number }) {
@@ -909,12 +941,12 @@ function Inspector({
       {state.teams ? (
         <div className="card">
           <div className="card-head">
-            <span className="card-title">Agents</span>
+            <span className="card-title">Who was in the room</span>
             <span className="meta push">
-              {state.teams.pro.length + state.teams.con.length + 1} in this run
+              {state.teams.pro.length + state.teams.con.length + 1} seats
             </span>
           </div>
-          <div className="card-pad" style={{ paddingTop: 2, paddingBottom: 8 }}>
+          <div className="card-pad" style={{ paddingTop: 6, paddingBottom: 10 }}>
             {state.teams.pro.map((agent, index) => (
               <AgentRow key={agent.id} tone="pro" initials={`P${index + 1}`} name={agent.name} meta={`${agent.model} · ${agent.role}`} />
             ))}
@@ -932,7 +964,7 @@ function Inspector({
       ) : null}
 
       <div className="card card-pad">
-        <div className="eyebrow">Run stats</div>
+        <div className="card-title">This run</div>
         <div className="mt10">
           <InsRow k="Turns" v={String(state.turns.length)} />
           <InsRow k="Claims" v={String(state.claims.length)} />
@@ -945,7 +977,7 @@ function Inspector({
 
       {fallbackSteps.length > 0 ? (
         <div className="card card-pad" style={{ borderColor: "var(--alert-line)" }}>
-          <div className="eyebrow" style={{ color: "var(--alert)" }}>
+          <div className="card-title" style={{ color: "var(--alert-ink)" }}>
             Steps that fell back
           </div>
           <p className="small mt10">
@@ -965,8 +997,8 @@ function Inspector({
 
       {state.scouts.length > 0 && !state.fallbacks.scouts ? (
         <div className="card card-pad">
-          <div className="eyebrow">Stance scouts</div>
-          <p className="small mt10">Positions staked out before any agent saw another&apos;s work.</p>
+          <div className="card-title">Opening positions</div>
+          <p className="small mt10">Staked out before any model saw another&apos;s work.</p>
           <div className="mt14">
             {state.scouts.map((scout) => (
               <div className="ins-row" key={scout.id} style={{ display: "block" }}>
