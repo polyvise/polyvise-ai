@@ -1,0 +1,219 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
+  <style>
+    :root{
+      --paper:#F6F3EC; --card:#FFFFFF; --well:#EEEAE1;
+      --ink:#1C1B17; --ink-2:#4B4842; --ink-3:#847F75;
+      --line:rgba(28,27,23,.10); --line-2:rgba(28,27,23,.18);
+      --pro:#2F7D4E; --pro-tint:#E1F1E6; --pro-ink:#23613C;
+      --con:#C97418; --con-tint:#FBEDDA; --con-ink:#9A5710;
+      --judge:#6B5AC6; --judge-tint:#ECE8F9; --judge-ink:#5245A0;
+      --shadow:0 1px 2px rgba(28,27,23,.05),0 18px 44px -18px rgba(28,27,23,.18);
+      --display:"Instrument Serif",Georgia,"Times New Roman",serif;
+      --ui:"Instrument Sans","Helvetica Neue",Arial,sans-serif;
+      --mono:"JetBrains Mono",Menlo,monospace;
+    }
+    body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--ui);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+    a{color:var(--pro-ink);text-decoration:none} a:hover{color:var(--pro)}
+    h1,h2,h3,h4,p{margin:0}
+    .display{font-family:var(--display);font-weight:400;letter-spacing:-.012em;line-height:1.08;color:var(--ink)}
+    .nav a{color:var(--ink-2);font-weight:500;font-size:14.5px;padding:8px 12px;border-radius:999px}
+    .nav a.on{background:var(--well);color:var(--ink)}
+    .stage{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink-3)}
+    .stage .n{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:600;background:var(--pro-tint);color:var(--pro-ink)}
+    .stage.now{color:var(--ink);font-weight:600}
+    .stage.now .n{background:#2F7D4E;color:#fff}
+    .tab{padding:9px 16px;border-radius:999px;font-size:14.5px;font-weight:500;color:var(--ink-2);cursor:pointer;display:inline-flex;gap:7px;align-items:center}
+    .tab.on{background:var(--ink);color:#F6F3EC}
+    .tab .c{font-size:12px;opacity:.7}
+    .score{display:flex;align-items:center;gap:16px;padding:12px 0;border-top:1px solid var(--line)}
+    .score .k{width:150px;flex:none;font-size:14.5px;color:var(--ink)}
+    .score .bars{flex:1;display:flex;gap:3px;height:8px}
+    .score .note{width:260px;flex:none;font-size:13px;color:var(--ink-3);line-height:1.4}
+    .turn{display:flex;flex-direction:column;gap:12px;padding:20px 22px;border-radius:16px;background:var(--card);border:1px solid var(--line)}
+    .av{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:600;flex:none}
+    .cite{font-family:var(--mono);font-size:11.5px;padding:3px 7px;border-radius:6px;background:var(--well);color:var(--ink-2)}
+    .row{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+    .kv{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--line);font-size:14px}
+    .kv .v{font-family:var(--mono);font-size:12.5px;color:var(--ink)}
+  </style>
+</helmet>
+
+<div style="width:1440px;min-height:1700px;background:var(--paper);display:flex;flex-direction:column">
+
+  <header style="display:flex;align-items:center;gap:24px;height:68px;padding:0 48px;border-bottom:1px solid var(--line);background:var(--paper)">
+    <a href="#" style="display:flex;align-items:center;gap:10px;color:var(--ink)">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="12" cy="12" r="9.5" stroke="#2F7D4E" stroke-width="1.8"></circle>
+        <circle cx="12" cy="12" r="5.2" stroke="#C97418" stroke-width="1.8"></circle>
+        <circle cx="12" cy="12" r="1.8" fill="#6B5AC6"></circle>
+      </svg>
+      <span style="font-family:var(--display);font-size:24px;letter-spacing:-.01em">Polyvise</span>
+    </a>
+    <nav class="nav" style="display:flex;align-items:center;gap:2px;margin-left:24px">
+      <a href="#">Ask</a>
+      <a class="on" href="#">Your runs</a>
+      <a href="#">How it works</a>
+      <a href="#">Models</a>
+    </nav>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
+      <button style="height:40px;padding:0 16px;border-radius:999px;border:1px solid var(--line-2);background:var(--card);font-family:var(--ui);font-size:14px;font-weight:500;color:var(--ink);cursor:pointer">Export</button>
+      <button style="height:40px;padding:0 18px;border-radius:999px;border:0;background:var(--ink);color:#F6F3EC;font-family:var(--ui);font-size:14px;font-weight:600;cursor:pointer">New question</button>
+    </div>
+  </header>
+
+  <!-- run header -->
+  <section style="padding:44px 48px 0;display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;align-items:center;gap:10px;font-size:14px;color:var(--ink-3)">
+      <a href="#" style="color:var(--ink-3)">Your runs</a>
+      <span>/</span>
+      <span>Debate · 2 vs 2 with a judge</span>
+      <span style="margin-left:auto;display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:var(--pro-tint);color:var(--pro-ink);font-weight:500"><span style="width:7px;height:7px;border-radius:50%;background:#2F7D4E"></span>Complete · 1 min 47 s · $0.14</span>
+    </div>
+    <h1 class="display" style="font-size:40px;max-width:1000px">Should a 40-person company move customer support to AI-first this year?</h1>
+    <div style="display:flex;align-items:center;gap:28px;padding-top:6px">
+      <div class="stage"><span class="n">✓</span>Frame</div>
+      <div class="stage"><span class="n">✓</span>Scout</div>
+      <div class="stage"><span class="n">✓</span>Evidence</div>
+      <div class="stage"><span class="n">✓</span>Debate</div>
+      <div class="stage now"><span class="n">5</span>Verdict</div>
+    </div>
+  </section>
+
+  <!-- tabs -->
+  <div style="display:flex;align-items:center;gap:4px;padding:28px 48px 0">
+    <span class="tab on">Verdict</span>
+    <span class="tab">Debate floor <span class="c">12</span></span>
+    <span class="tab">Evidence <span class="c">9</span></span>
+    <span class="tab">Argument map</span>
+    <span class="tab">Telemetry <span class="c">17</span></span>
+  </div>
+
+  <!-- body -->
+  <div style="display:grid;grid-template-columns:minmax(0, 1fr) 340px;gap:24px;padding:20px 48px 64px;align-items:start">
+
+    <div style="display:flex;flex-direction:column;gap:20px">
+
+      <!-- verdict hero -->
+      <div style="background:var(--card);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column">
+        <div style="display:flex;gap:36px;padding:32px 34px 28px;align-items:flex-start">
+          <div style="flex:1;display:flex;flex-direction:column;gap:16px;min-width:0">
+            <span style="align-self:flex-start;display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:var(--pro-tint);color:var(--pro-ink);font-size:13.5px;font-weight:600"><span style="width:7px;height:7px;border-radius:50%;background:#2F7D4E"></span>The council leans yes</span>
+            <h2 class="display" style="font-size:38px;max-width:640px">Adopt AI-first support in the next 12 months, but keep a human on billing and account disputes.</h2>
+            <p style="font-size:16px;color:var(--ink-2);max-width:600px">The cost and speed case held up under cross-examination. The opposition's strongest point, that trust erodes when escalation is slow, survived and became a condition on the verdict rather than a reason against it.</p>
+          </div>
+          <div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:6px;width:150px">
+            <svg width="132" height="132" viewBox="0 0 132 132" aria-hidden="true">
+              <circle cx="66" cy="66" r="56" fill="none" stroke="#EEEAE1" stroke-width="10"></circle>
+              <circle cx="66" cy="66" r="56" fill="none" stroke="#2F7D4E" stroke-width="10" stroke-linecap="round" stroke-dasharray="253 352" transform="rotate(-90 66 66)"></circle>
+              <text x="66" y="62" text-anchor="middle" font-family="Instrument Serif, Georgia, serif" font-size="40" fill="#1C1B17">72</text>
+              <text x="66" y="84" text-anchor="middle" font-family="Instrument Sans, Arial, sans-serif" font-size="12" fill="#847F75">confidence</text>
+            </svg>
+            <span style="font-size:13px;color:var(--ink-3);text-align:center">4 of 5 dimensions to the yes side</span>
+          </div>
+        </div>
+
+        <div style="padding:0 34px 26px;display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;height:10px;border-radius:5px;overflow:hidden;background:var(--well)">
+            <span style="width:58%;background:#2F7D4E"></span>
+            <span style="width:42%;background:#C97418"></span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:13.5px;font-weight:500">
+            <span style="color:var(--pro-ink)">For · 58</span>
+            <span style="color:var(--con-ink)">42 · Against</span>
+          </div>
+        </div>
+
+        <div style="padding:22px 34px 24px;border-top:1px solid var(--line);background:rgba(238,234,225,.45)">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+            <span style="font-size:15px;font-weight:600">How the judge scored it</span>
+            <span style="margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--ink-3)">anthropic/claude-opus-4.8 · neutral seat</span>
+          </div>
+          <div class="score"><span class="k">Evidence quality</span><div class="bars"><span style="width:66%;background:#2F7D4E;border-radius:4px"></span><span style="width:34%;background:#C97418;border-radius:4px"></span></div><span class="note">Primary sources on deflection rates; the opposition cited mostly surveys.</span></div>
+          <div class="score"><span class="k">Feasibility</span><div class="bars"><span style="width:60%;background:#2F7D4E;border-radius:4px"></span><span style="width:40%;background:#C97418;border-radius:4px"></span></div><span class="note">A 40-person team can pilot in one quarter.</span></div>
+          <div class="score"><span class="k">Risk</span><div class="bars"><span style="width:44%;background:#2F7D4E;border-radius:4px"></span><span style="width:56%;background:#C97418;border-radius:4px"></span></div><span class="note">Churn from bad escalations is real and under-measured.</span></div>
+          <div class="score"><span class="k">Cost</span><div class="bars"><span style="width:70%;background:#2F7D4E;border-radius:4px"></span><span style="width:30%;background:#C97418;border-radius:4px"></span></div><span class="note">Both sides agreed on the direction, disagreed on the size.</span></div>
+          <div class="score"><span class="k">People</span><div class="bars"><span style="width:52%;background:#2F7D4E;border-radius:4px"></span><span style="width:48%;background:#C97418;border-radius:4px"></span></div><span class="note">Nearly even. Depends on redeployment, not layoffs.</span></div>
+        </div>
+      </div>
+
+      <!-- for / against -->
+      <div style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:20px">
+        <div style="display:flex;flex-direction:column;gap:12px;padding:24px;border-radius:18px;background:var(--card);border:1px solid var(--line)">
+          <div style="display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600;color:var(--pro-ink)"><span style="width:8px;height:8px;border-radius:50%;background:#2F7D4E"></span>Strongest arguments for</div>
+          <p style="font-size:14.5px;color:var(--ink-2);padding-left:14px;border-left:2px solid var(--pro-tint)">Tier-one tickets are 70 percent of volume and the most repetitive. Deflecting them frees people for the hard cases.</p>
+          <p style="font-size:14.5px;color:var(--ink-2);padding-left:14px;border-left:2px solid var(--pro-tint)">Response time is the metric customers actually notice, and it improves immediately.</p>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px;padding:24px;border-radius:18px;background:var(--card);border:1px solid var(--line)">
+          <div style="display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600;color:var(--con-ink)"><span style="width:8px;height:8px;border-radius:50%;background:#C97418"></span>Strongest arguments against</div>
+          <p style="font-size:14.5px;color:var(--ink-2);padding-left:14px;border-left:2px solid var(--con-tint)">One bad billing interaction costs more trust than a hundred fast answers earn.</p>
+          <p style="font-size:14.5px;color:var(--ink-2);padding-left:14px;border-left:2px solid var(--con-tint)">A 40-person company has no one to own the model when it drifts.</p>
+        </div>
+      </div>
+
+      <!-- debate floor sample -->
+      <div style="display:flex;flex-direction:column;gap:14px;margin-top:12px">
+        <div style="display:flex;align-items:center;gap:14px">
+          <span style="font-size:13.5px;font-weight:600;color:var(--ink-3);padding:5px 10px;border-radius:999px;background:var(--well)">Round 3 · Rebuttal</span>
+          <span style="flex:1;height:1px;background:var(--line)"></span>
+          <a href="#" style="font-size:14px;font-weight:500">Open the full floor</a>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:14px">
+          <article class="turn">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span class="av" style="background:var(--pro-tint);color:var(--pro-ink)">P2</span>
+              <div style="display:flex;flex-direction:column;line-height:1.25"><span style="font-size:14.5px;font-weight:600">Implementation rebuttal</span><span style="font-size:12.5px;color:var(--ink-3)">arguing for · google/gemini-2.5-flash</span></div>
+            </div>
+            <p style="font-size:14.5px;color:var(--ink-2)">The drift concern assumes nobody owns the system. The pilot plan in S4 assigns one support lead half-time to review transcripts weekly, which is exactly how small teams handle any vendor tool.</p>
+            <div style="display:flex;gap:6px;align-items:center"><span class="cite">S4</span><span class="cite">S1</span></div>
+          </article>
+          <article class="turn">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span class="av" style="background:var(--con-tint);color:var(--con-ink)">C1</span>
+              <div style="display:flex;flex-direction:column;line-height:1.25"><span style="font-size:14.5px;font-weight:600">Risk case</span><span style="font-size:12.5px;color:var(--ink-3)">arguing against · openai/gpt-5.5</span></div>
+            </div>
+            <p style="font-size:14.5px;color:var(--ink-2)">Half-time review catches yesterday's failures, not today's. The escalation path matters more than the review cadence, and S6 shows escalation latency doubled in two of three comparable rollouts.</p>
+            <div style="display:flex;gap:6px;align-items:center"><span class="cite">S6</span></div>
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <!-- inspector -->
+    <aside style="display:flex;flex-direction:column;gap:16px;position:sticky;top:24px">
+      <div style="padding:20px 22px;border-radius:18px;background:var(--card);border:1px solid var(--line);display:flex;flex-direction:column">
+        <div style="font-size:15px;font-weight:600;margin-bottom:6px">Who was in the room</div>
+        <div class="row"><span class="av" style="background:var(--pro-tint);color:var(--pro-ink);width:30px;height:30px;font-size:11px">P1</span><div style="line-height:1.25;min-width:0"><div style="font-size:14px;font-weight:500">Opening case</div><div style="font-family:var(--mono);font-size:11.5px;color:var(--ink-3)">anthropic/claude-sonnet-4.6</div></div></div>
+        <div class="row"><span class="av" style="background:var(--pro-tint);color:var(--pro-ink);width:30px;height:30px;font-size:11px">P2</span><div style="line-height:1.25;min-width:0"><div style="font-size:14px;font-weight:500">Implementation rebuttal</div><div style="font-family:var(--mono);font-size:11.5px;color:var(--ink-3)">google/gemini-2.5-flash</div></div></div>
+        <div class="row"><span class="av" style="background:var(--con-tint);color:var(--con-ink);width:30px;height:30px;font-size:11px">C1</span><div style="line-height:1.25;min-width:0"><div style="font-size:14px;font-weight:500">Risk case</div><div style="font-family:var(--mono);font-size:11.5px;color:var(--ink-3)">openai/gpt-5.5</div></div></div>
+        <div class="row"><span class="av" style="background:var(--con-tint);color:var(--con-ink);width:30px;height:30px;font-size:11px">C2</span><div style="line-height:1.25;min-width:0"><div style="font-size:14px;font-weight:500">Stakeholder rebuttal</div><div style="font-family:var(--mono);font-size:11.5px;color:var(--ink-3)">openai/gpt-5.5</div></div></div>
+        <div class="row"><span class="av" style="background:var(--judge-tint);color:var(--judge-ink);width:30px;height:30px;font-size:11px">J</span><div style="line-height:1.25;min-width:0"><div style="font-size:14px;font-weight:500">Judge</div><div style="font-family:var(--mono);font-size:11.5px;color:var(--ink-3)">anthropic/claude-opus-4.8</div></div></div>
+      </div>
+
+      <div style="padding:20px 22px;border-radius:18px;background:var(--card);border:1px solid var(--line);display:flex;flex-direction:column">
+        <div style="font-size:15px;font-weight:600;margin-bottom:6px">This run</div>
+        <div class="kv"><span style="color:var(--ink-3)">Turns</span><span class="v">12</span></div>
+        <div class="kv"><span style="color:var(--ink-3)">Sources kept</span><span class="v">7 of 9</span></div>
+        <div class="kv"><span style="color:var(--ink-3)">Model calls</span><span class="v">17 · 0 retries</span></div>
+        <div class="kv"><span style="color:var(--ink-3)">Cost</span><span class="v">$0.14</span></div>
+      </div>
+
+      <div style="padding:20px 22px;border-radius:18px;background:var(--card);border:1px solid var(--line);display:flex;flex-direction:column;gap:12px">
+        <div style="font-size:15px;font-weight:600">Ask the judge a follow-up</div>
+        <div style="display:flex;align-items:center;height:44px;padding:0 14px;border-radius:12px;background:var(--well);color:var(--ink-3);font-size:14px">What if we only did email, not chat?</div>
+        <button style="height:42px;border-radius:999px;border:0;background:#2F7D4E;color:#fff;font-family:var(--ui);font-size:14.5px;font-weight:600;cursor:pointer">Ask</button>
+      </div>
+    </aside>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

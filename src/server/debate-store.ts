@@ -14,7 +14,10 @@ import {
   productNotes,
   runHybridCouncilDebate
 } from "@polyvise/core/debate/engine";
+import { runConsensus, type ConsensusLiveEvent } from "@polyvise/core/consensus/engine";
+import { runAdvisoryPanel, type AdvisoryPanelLiveEvent } from "@polyvise/core/panel/engine";
 import { createDefaultDebateRepository, createDefaultFeedbackRepository } from "./repository";
+import { asDebateRun, type PolyviseRecord, type StoredRun } from "@/lib/run-record";
 import type {
   DebateLiveEvent,
   DebateRecord,
@@ -24,6 +27,13 @@ import type {
   UserFeedback
 } from "@polyvise/core/debate/types";
 
+/**
+ * Every mode's live events on one bus. The three payload unions stay separate
+ * in core because their shapes genuinely differ; the transport does not care,
+ * and a subscriber narrows on `kind` as it always has.
+ */
+export type RunLiveEvent = DebateLiveEvent | ConsensusLiveEvent | AdvisoryPanelLiveEvent;
+
 const repository = createDefaultDebateRepository();
 const feedbackRepository = createDefaultFeedbackRepository();
 export const DEBATE_UNAVAILABLE_MESSAGE =
@@ -31,14 +41,14 @@ export const DEBATE_UNAVAILABLE_MESSAGE =
 export const DEBATE_JUDGE_UNAVAILABLE_MESSAGE =
   "The judge frog couldn't finish this debate right now. Please try again in a few minutes.";
 
-type Listener = (event: DebateLiveEvent) => void;
+type Listener = (event: RunLiveEvent) => void;
 
 class DebateEventBus {
-  readonly buffer: DebateLiveEvent[] = [];
+  readonly buffer: RunLiveEvent[] = [];
   private listeners = new Set<Listener>();
   private terminal = false;
 
-  emit(event: DebateLiveEvent): void {
+  emit(event: RunLiveEvent): void {
     this.buffer.push(event);
     for (const listener of this.listeners) {
       try {
@@ -93,7 +103,7 @@ function scheduleBusCleanup(id: string, delayMs = 5 * 60 * 1000): void {
 }
 
 function buildSeedRecord(input: DebateRequest): {
-  record: DebateRecord;
+  record: PolyviseRecord;
   request: DebateRequest;
   config: DebateRuntimeConfig;
   framed: ReturnType<typeof frameDebateRequest>;
@@ -102,7 +112,7 @@ function buildSeedRecord(input: DebateRequest): {
   const id = `debate_${randomUUID().slice(0, 10)}`;
   const framed = frameDebateRequest(request);
   const createdAt = new Date().toISOString();
-  const record: DebateRecord = {
+  const record: PolyviseRecord = {
     id,
     subject: framed.subject,
     context: framed.context,
@@ -145,8 +155,8 @@ function configWithDevOverrides(config: DebateRuntimeConfig, request: DebateRequ
 }
 
 export interface StartDebateResult {
-  debate: DebateRecord;
-  completion: Promise<DebateRecord>;
+  debate: PolyviseRecord;
+  completion: Promise<PolyviseRecord>;
 }
 
 export async function startDebate(input: DebateRequest): Promise<StartDebateResult> {
@@ -154,13 +164,10 @@ export async function startDebate(input: DebateRequest): Promise<StartDebateResu
   await repository.save(record);
   const bus = getOrCreateBus(record.id);
 
-  const completion = (async (): Promise<DebateRecord> => {
+  const completion = (async (): Promise<PolyviseRecord> => {
     try {
-      const run = await runHybridCouncilDebate(record.id, request, framed, {
-        config,
-        emit: (event) => bus.emit(event)
-      });
-      const completed: DebateRecord = {
+      const run = await runForMode(record.id, request, framed, config, (event) => bus.emit(event));
+      const completed: PolyviseRecord = {
         ...record,
         status: run.status,
         latestRun: run,
@@ -181,7 +188,7 @@ export async function startDebate(input: DebateRequest): Promise<StartDebateResu
         kind: "error",
         message: hasStartedDebate ? DEBATE_JUDGE_UNAVAILABLE_MESSAGE : DEBATE_UNAVAILABLE_MESSAGE
       });
-      const failed: DebateRecord = {
+      const failed: PolyviseRecord = {
         ...record,
         status: "failed",
         updatedAt: new Date().toISOString()
@@ -198,6 +205,31 @@ export async function startDebate(input: DebateRequest): Promise<StartDebateResu
   return { debate: record, completion };
 }
 
+/**
+ * Runs whichever mode was asked for.
+ *
+ * The hybrid council keeps returning its flat run so records written before
+ * the other modes existed stay byte-identical to new ones; consensus and the
+ * panel return their envelopes, which is the only shape they have.
+ */
+async function runForMode(
+  debateId: string,
+  request: DebateRequest,
+  framed: ReturnType<typeof frameDebateRequest>,
+  config: DebateRuntimeConfig,
+  emit: (event: RunLiveEvent) => void
+): Promise<StoredRun> {
+  switch (request.mode) {
+    case "consensus":
+      return runConsensus(debateId, request, framed, { config, emit });
+    case "advisory_panel":
+      return runAdvisoryPanel(debateId, request, framed, { config, emit });
+    case "hybrid_council":
+    default:
+      return runHybridCouncilDebate(debateId, request, framed, { config, emit });
+  }
+}
+
 function modelSnapshotFromError(error: unknown): ModelSnapshot | null {
   if (error instanceof LlmProviderFailure) {
     return error.snapshot;
@@ -205,7 +237,7 @@ function modelSnapshotFromError(error: unknown): ModelSnapshot | null {
   return null;
 }
 
-export async function createDebate(input: DebateRequest): Promise<DebateRecord> {
+export async function createDebate(input: DebateRequest): Promise<PolyviseRecord> {
   const { completion } = await startDebate(input);
   return completion;
 }
@@ -222,11 +254,11 @@ export function subscribeToDebate(
   return { unsubscribe, terminal: bus.isTerminal() };
 }
 
-export function getDebate(id: string): Promise<DebateRecord | null> {
+export function getDebate(id: string): Promise<PolyviseRecord | null> {
   return repository.get(id);
 }
 
-export function listDebates(): Promise<DebateRecord[]> {
+export function listDebates(): Promise<PolyviseRecord[]> {
   return repository.list();
 }
 
@@ -282,7 +314,7 @@ export async function addFollowup(debateId: string, question: string): Promise<F
   return exchange;
 }
 
-async function answerFollowup(question: string, debate: DebateRecord): Promise<string> {
+async function answerFollowup(question: string, debate: PolyviseRecord): Promise<string> {
   const fallback = {
     answer: answerFollowupDeterministic(question, debate)
   };
@@ -299,9 +331,10 @@ async function answerFollowup(question: string, debate: DebateRecord): Promise<s
   }
 }
 
-function answerFollowupDeterministic(question: string, debate: DebateRecord): string {
+function answerFollowupDeterministic(question: string, debate: PolyviseRecord): string {
   const lowered = question.toLowerCase();
-  const summary = debate.latestRun?.summary;
+  const run = debate.latestRun ? asDebateRun(debate.latestRun) : null;
+  const summary = run?.summary;
 
   if (!summary) {
     return "The debate has not completed yet, so this question cannot be answered from the run record.";
@@ -316,7 +349,7 @@ function answerFollowupDeterministic(question: string, debate: DebateRecord): st
   }
 
   if (lowered.includes("source") || lowered.includes("evidence")) {
-    const sources = debate.latestRun?.sources.slice(0, 3).map((source) => `${source.publisher}: ${source.title}`);
+    const sources = run?.sources.slice(0, 3).map((source) => `${source.publisher}: ${source.title}`);
     return `The run leaned on these sources first: ${sources?.join("; ")}. Live search can replace development references when BRAVE_SEARCH_API_KEY or TAVILY_API_KEY is configured.`;
   }
 

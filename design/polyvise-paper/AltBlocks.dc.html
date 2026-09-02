@@ -1,0 +1,44 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap">
+  <style>
+    body{margin:0;font-family:"Patrick Hand","Comic Sans MS",cursive;color:#2A2A2A}
+    a{color:#2A2A2A} a:hover{color:#000}
+    .txt{height:8px;border-radius:4px;background:rgba(0,0,0,.35)}
+  </style>
+</helmet>
+<div style="width:720px;height:520px;background:#F4F4F1;padding:24px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box">
+  <div style="display:flex;align-items:baseline;gap:12px">
+    <span style="font-size:26px">Alternate C: Blocks</span>
+    <span style="font-size:16px;color:#6A6A6A">flat color fields, chunky type, sides as literal halves</span>
+  </div>
+  <div style="flex:1;display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));grid-template-rows:auto 1fr;gap:8px;border-radius:10px;overflow:hidden">
+    <div style="grid-column:1 / -1;background:#FFFFFF;border:2px solid #2A2A2A;border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px"><span style="font-size:20px;font-weight:700">POLYVISE</span><span style="margin-left:auto;display:flex;gap:8px"><span class="txt" style="width:40px"></span><span class="txt" style="width:40px"></span></span></div>
+      <div class="txt" style="width:420px;height:26px;background:#2A2A2A"></div>
+      <div style="display:flex;gap:8px;align-items:center"><div style="flex:1;height:44px;border:2px solid #2A2A2A;border-radius:6px"></div><div style="width:140px;height:44px;border-radius:6px;background:#2A2A2A"></div></div>
+    </div>
+    <div style="background:#2F7D4E;border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:10px;color:#fff">
+      <span style="font-size:22px">FOR · 58</span>
+      <div class="txt" style="width:80%;background:rgba(255,255,255,.55)"></div>
+      <div class="txt" style="width:60%;background:rgba(255,255,255,.55)"></div>
+      <div class="txt" style="width:70%;background:rgba(255,255,255,.55)"></div>
+    </div>
+    <div style="background:#C97418;border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:10px;color:#fff">
+      <span style="font-size:22px">AGAINST · 42</span>
+      <div class="txt" style="width:70%;background:rgba(255,255,255,.55)"></div>
+      <div class="txt" style="width:50%;background:rgba(255,255,255,.55)"></div>
+    </div>
+  </div>
+  <p style="font-size:16px;line-height:1.35;color:#4A4A4A">Most memorable and the most fun. The tradeoff is the brand promise: big color halves visually pick a winner before the judge does, which the current design goes out of its way to avoid.</p>
+</div>
+</x-dc>
+</body>
+</html>

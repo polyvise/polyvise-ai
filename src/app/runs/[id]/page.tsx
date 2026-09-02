@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { RunSurface } from "@/components/run-surface";
+import { AdvisoryPanelSurface, ConsensusSurface } from "@/components/mode-surface";
+import { asAdvisoryPanelRun, asConsensusRun, asDebateRecord } from "@/lib/run-record";
 import { getDebate } from "@/server/debate-store";
 
 export const dynamic = "force-dynamic";
@@ -26,5 +28,18 @@ export default async function RunPage({ params }: PageProps) {
     notFound();
   }
 
-  return <RunSurface record={debate} />;
+  // Dispatch on what the run actually produced. A record whose run has not
+  // finished yet has nothing to narrow on, so it falls through to the debate
+  // surface, which is the one that renders an in-flight run.
+  const consensus = debate.latestRun ? asConsensusRun(debate.latestRun) : null;
+  if (consensus) {
+    return <ConsensusSurface record={debate} run={consensus} />;
+  }
+
+  const panel = debate.latestRun ? asAdvisoryPanelRun(debate.latestRun) : null;
+  if (panel) {
+    return <AdvisoryPanelSurface record={debate} run={panel} />;
+  }
+
+  return <RunSurface record={asDebateRecord(debate)} />;
 }

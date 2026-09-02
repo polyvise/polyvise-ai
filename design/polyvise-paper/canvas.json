@@ -1,0 +1,16 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "title": "Ask (home)", "x": 0, "y": 0, "w": 1440, "h": 1820 },
+    { "file": "Run.dc.html", "title": "Verdict", "x": 1560, "y": 0, "w": 1440, "h": 1700 },
+    { "file": "Mobile.dc.html", "title": "Ask on a phone", "x": 0, "y": 2000, "w": 390, "h": 844 },
+    { "file": "Tokens.dc.html", "title": "Paper tokens, light and dark", "x": 520, "y": 2000, "w": 1440, "h": 960 },
+    { "file": "AltNightfall.dc.html", "title": "Alternate B", "x": 0, "y": 3160, "w": 720, "h": 520 },
+    { "file": "AltBlocks.dc.html", "title": "Alternate C", "x": 820, "y": 3160, "w": 720, "h": 520 }
+  ],
+  "annotations": [
+    { "id": "why-paper", "x": 0, "y": -220, "w": 560, "text": "Direction A: Paper (recommended)\n\nWhat changes from polyvise.ai today:\n1. Light, warm default with dark as a peer. The current dark-only console reads as a developer tool before anyone has typed a question.\n2. The question box IS the home page. No overview hero to scroll past.\n3. Mode names a newcomer can parse (Debate, Consensus, Advisory panel) with a five-dot diagram of who is in the room, instead of Hybrid Council + ADVERSARIAL / 5 AGENTS chips.\n4. Mono uppercase eyebrows retired. Mono stays only for model ids, costs, source refs.\n5. Radii 4/8 become 12/18/22 and pills; controls grow to 40/48.\n6. Kept: Instrument Serif, the for / against / judge trio, equal-width pro and con columns, failed steps reported not filled in." },
+    { "id": "verdict-note", "x": 1560, "y": -150, "w": 480, "text": "Verdict screen\n\nThe verdict becomes the run's front page (today it is the second tab). Confidence is a ring, the balance bar and five scored dimensions sit inside the same card, and the agents rail says who was in the room in plain words with the model id underneath." },
+    { "id": "alts-note", "x": 0, "y": 3020, "w": 720, "text": "Two low-fi alternates, sketched so you can compare directions, not polish. Pick A, B or C (or a blend) and the rest of the canvas gets built to match." }
+  ],
+  "launch": { "view": "canvas" }
+}

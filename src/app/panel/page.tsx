@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import type { Route } from "next";
 
 export const metadata: Metadata = {
-  title: "Advisory Panel | Polyvise",
+  title: "Advisory panel | Polyvise",
   description: "A mode where named perspectives advise separately and a chair writes up the overlap."
 };
 
@@ -35,8 +37,14 @@ const advisors = [
 export default function PanelPage() {
   return (
     <section className="page">
-      <span className="eyebrow">Mode concept · not yet in core</span>
-      <h2 className="display d2 mt10">Advisory Panel</h2>
+      <div className="row gap8 wrap">
+        <span className="eyebrow">Deliberation mode</span>
+        <span className="chip pro">
+          <span className="dot" />
+          Live
+        </span>
+      </div>
+      <h2 className="display d2 mt10">Advisory panel</h2>
       <p className="lede mt10 mw640">
         Each advisor works from a named perspective and answers in its own voice. Nobody argues against anyone else and
         no winner is declared — a chair reads the advice and writes up where it agrees and where it doesn&apos;t.
@@ -78,9 +86,17 @@ export default function PanelPage() {
         </div>
       </div>
 
+      <div className="hero-cta">
+        <Link href={"/" as Route} className="btn btn-primary btn-lg">
+          Ask a question
+        </Link>
+        <Link href={"/runs" as Route} className="btn">
+          Your past runs
+        </Link>
+      </div>
+
       <p className="meta mt18">
-        The advice above is a worked illustration of the intended output, not a recorded run — polyvise-core exposes
-        one mode today.
+        The advice above illustrates the shape of the output. Run one to see real advice.
       </p>
     </section>
   );

@@ -35,9 +35,14 @@ export function RunsTable({ runs }: { runs: RunSummary[] }) {
                       {run.failedStep ? `Failed at ${run.failedStep}` : "Failed"}
                     </span>
                   ) : run.verdict ? (
-                    <span className={`chip ${run.verdictTone}`}>
-                      <span className="dot" />
-                      {run.verdict}
+                    <span className="row gap6 wrap">
+                      <span className={`chip ${run.verdictTone}`}>
+                        <span className="dot" />
+                        {run.verdict}
+                      </span>
+                      {/* The mode's own footnote — "2 dissenting" changes how
+                          a converged verdict should be read. */}
+                      {run.detail ? <span className="meta">{run.detail}</span> : null}
                     </span>
                   ) : (
                     <span className="chip">

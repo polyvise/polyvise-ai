@@ -11,3 +11,6 @@ coverage
 drizzle/meta
 *.tsbuildinfo
 *.log
+
+# seeded design canvas (2 MB, regenerated from the .dc.html artboards)
+design/polyvise-paper/polyvise-paper.html

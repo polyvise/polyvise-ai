@@ -1,0 +1,209 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
+  <style>
+    :root{
+      --paper:#F6F3EC; --card:#FFFFFF; --well:#EEEAE1;
+      --ink:#1C1B17; --ink-2:#4B4842; --ink-3:#847F75;
+      --line:rgba(28,27,23,.10); --line-2:rgba(28,27,23,.18);
+      --pro:#2F7D4E; --pro-tint:#E1F1E6; --pro-ink:#23613C;
+      --con:#C97418; --con-tint:#FBEDDA; --con-ink:#9A5710;
+      --judge:#6B5AC6; --judge-tint:#ECE8F9; --judge-ink:#5245A0;
+      --shadow:0 1px 2px rgba(28,27,23,.05),0 18px 44px -18px rgba(28,27,23,.18);
+      --display:"Instrument Serif",Georgia,"Times New Roman",serif;
+      --ui:"Instrument Sans","Helvetica Neue",Arial,sans-serif;
+      --mono:"JetBrains Mono",Menlo,monospace;
+    }
+    body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--ui);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+    a{color:var(--pro-ink);text-decoration:none} a:hover{color:var(--pro)}
+    h1,h2,h3,h4,p{margin:0}
+    .display{font-family:var(--display);font-weight:400;letter-spacing:-.012em;line-height:1.02;color:var(--ink)}
+    .nav a{color:var(--ink-2);font-weight:500;font-size:14.5px;padding:8px 12px;border-radius:999px}
+    .nav a.on{background:var(--well);color:var(--ink)}
+    .mode{display:flex;flex-direction:column;gap:10px;padding:16px 16px 14px;border:1.5px solid var(--line);border-radius:14px;background:var(--card);text-align:left;cursor:pointer;min-height:132px}
+    .mode.on{border-color:var(--pro);background:var(--pro-tint);box-shadow:0 0 0 3px rgba(47,125,78,.12)}
+    .dot{width:10px;height:10px;border-radius:50%;display:block}
+    .chip{display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border-radius:999px;border:1px solid var(--line-2);background:var(--card);color:var(--ink-2);font-size:14px;cursor:pointer}
+    .chip:hover{border-color:var(--ink-3);color:var(--ink)}
+    .step{display:flex;flex-direction:column;gap:8px;flex:1;min-width:0}
+    .step h4{font-size:16px;font-weight:600;color:var(--ink)}
+    .step p{font-size:14px;color:var(--ink-2);line-height:1.5}
+    .node{width:14px;height:14px;border-radius:50%;display:block;flex:none}
+  </style>
+</helmet>
+
+<div style="width:1440px;min-height:1820px;background:var(--paper);position:relative;overflow:hidden;display:flex;flex-direction:column">
+
+  <!-- warm atmosphere -->
+  <div style="position:absolute;left:50%;top:-320px;width:1100px;height:760px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(closest-side,rgba(47,125,78,.10),rgba(201,116,24,.05) 55%,transparent 100%);pointer-events:none"></div>
+
+  <!-- top bar -->
+  <header style="position:relative;display:flex;align-items:center;gap:24px;height:68px;padding:0 48px;border-bottom:1px solid var(--line)">
+    <a href="#" style="display:flex;align-items:center;gap:10px;color:var(--ink)">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="12" cy="12" r="9.5" stroke="#2F7D4E" stroke-width="1.8"></circle>
+        <circle cx="12" cy="12" r="5.2" stroke="#C97418" stroke-width="1.8"></circle>
+        <circle cx="12" cy="12" r="1.8" fill="#6B5AC6"></circle>
+      </svg>
+      <span style="font-family:var(--display);font-size:24px;letter-spacing:-.01em">Polyvise</span>
+    </a>
+    <nav class="nav" style="display:flex;align-items:center;gap:2px;margin-left:24px">
+      <a class="on" href="#">Ask</a>
+      <a href="#">Your runs</a>
+      <a href="#">How it works</a>
+      <a href="#">Models</a>
+    </nav>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
+      <button style="width:40px;height:40px;border-radius:999px;border:1px solid var(--line-2);background:var(--card);display:grid;place-items:center;cursor:pointer;color:var(--ink-2)" aria-label="Switch to dark theme">
+        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M16.5 12.2A7 7 0 0 1 7.8 3.5a7 7 0 1 0 8.7 8.7Z" stroke-linejoin="round"></path></svg>
+      </button>
+      <span style="display:inline-flex;align-items:center;gap:8px;padding:0 14px;height:40px;border-radius:999px;background:var(--card);border:1px solid var(--line-2);font-size:13.5px;color:var(--ink-2)">
+        <span class="dot" style="width:7px;height:7px;background:#2F7D4E"></span>12 models ready
+      </span>
+    </div>
+  </header>
+
+  <!-- hero + composer -->
+  <section style="position:relative;display:flex;flex-direction:column;align-items:center;gap:28px;padding:88px 48px 0;text-align:center">
+    <span style="font-size:14px;font-weight:500;color:var(--ink-3);letter-spacing:.02em">Several models. One structured argument. An answer you can check.</span>
+    <h1 class="display" style="font-size:64px;max-width:1040px">Ask a hard question.<br>Several AI models argue it out.<br>A neutral judge gives you the verdict.</h1>
+    <p style="font-size:19px;line-height:1.55;color:var(--ink-2);max-width:620px">Every claim links to the source behind it, and every step names the model that produced it.</p>
+
+    <div style="width:920px;margin-top:20px;background:var(--card);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);text-align:left;display:flex;flex-direction:column;overflow:hidden">
+      <div style="padding:30px 32px 8px">
+        <div style="font-family:var(--display);font-size:32px;line-height:1.22;color:#B9B3A7;min-height:80px">Should a 40-person company move customer support to AI-first this year?</div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));gap:12px;padding:12px 32px 22px">
+        <div class="mode on">
+          <div style="display:flex;align-items:center;gap:5px;height:14px">
+            <span class="dot" style="background:#2F7D4E"></span><span class="dot" style="background:#2F7D4E"></span>
+            <span style="font-size:11px;color:var(--ink-3);margin:0 4px">vs</span>
+            <span class="dot" style="background:#C97418"></span><span class="dot" style="background:#C97418"></span>
+            <span style="width:1px;height:12px;background:var(--line-2);margin:0 6px"></span>
+            <span class="dot" style="background:#6B5AC6"></span>
+          </div>
+          <div style="font-size:16px;font-weight:600;color:var(--ink)">Debate</div>
+          <p style="font-size:13.5px;color:var(--ink-2);line-height:1.45">Two argue for, two against, a judge scores it. Best for yes-or-no decisions.</p>
+        </div>
+        <div class="mode">
+          <div style="display:flex;align-items:center;gap:5px;height:14px">
+            <span class="dot" style="background:#847F75"></span><span class="dot" style="background:#847F75;opacity:.8"></span><span class="dot" style="background:#847F75;opacity:.6"></span><span class="dot" style="background:#847F75;opacity:.45"></span><span class="dot" style="background:#847F75;opacity:.3"></span>
+            <svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="#847F75" stroke-width="1.5" stroke-linecap="round"><path d="M1 6h13M10 2l4 4-4 4"></path></svg>
+            <span class="dot" style="background:#2F7D4E"></span>
+          </div>
+          <div style="font-size:16px;font-weight:600;color:var(--ink)">Consensus</div>
+          <p style="font-size:13.5px;color:var(--ink-2);line-height:1.45">Five models answer alone, then revise until they settle. Best for estimates.</p>
+        </div>
+        <div class="mode">
+          <div style="display:flex;align-items:center;gap:5px;height:14px">
+            <span class="dot" style="background:#3A78C2"></span><span class="dot" style="background:#C4507F"></span><span class="dot" style="background:#C97418"></span><span class="dot" style="background:#847F75"></span>
+            <span style="width:1px;height:12px;background:var(--line-2);margin:0 6px"></span>
+            <span class="dot" style="background:#6B5AC6"></span>
+          </div>
+          <div style="font-size:16px;font-weight:600;color:var(--ink)">Advisory panel</div>
+          <p style="font-size:13.5px;color:var(--ink-2);line-height:1.45">An economist, an ethicist, an operator and a skeptic each advise. Best for strategy.</p>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:18px;padding:16px 32px;border-top:1px solid var(--line);background:var(--well)">
+        <span style="font-size:14px;color:var(--ink-2)">Cited evidence</span>
+        <span style="width:4px;height:4px;border-radius:50%;background:var(--ink-3)"></span>
+        <span style="font-size:14px;color:var(--ink-2)">About 2 minutes</span>
+        <span style="width:4px;height:4px;border-radius:50%;background:var(--ink-3)"></span>
+        <span style="font-size:14px;color:var(--ink-2)">Around $0.14</span>
+        <a href="#" style="margin-left:auto;font-size:14px;font-weight:500">Choose models</a>
+        <button style="display:inline-flex;align-items:center;gap:10px;height:48px;padding:0 22px 0 24px;border-radius:999px;border:0;background:#2F7D4E;color:#FFFFFF;font-family:var(--ui);font-size:16px;font-weight:600;cursor:pointer;box-shadow:0 8px 20px -8px rgba(47,125,78,.6)">
+          Start the debate
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10h13M11 5l5 5-5 5"></path></svg>
+        </button>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;max-width:920px;margin-top:4px">
+      <span style="font-size:14px;color:var(--ink-3);margin-right:4px">Or try</span>
+      <span class="chip">Should cities ban private cars downtown?</span>
+      <span class="chip">Is nuclear power a good climate strategy?</span>
+      <span class="chip">Remote job or higher-paying hybrid offer?</span>
+      <span class="chip">Should schools allow phones during the day?</span>
+    </div>
+  </section>
+
+  <!-- how a run works -->
+  <section style="position:relative;padding:112px 120px 0;display:flex;flex-direction:column;gap:36px">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:24px">
+      <h2 class="display" style="font-size:40px">What happens after you press start</h2>
+      <span style="font-size:15px;color:var(--ink-3)">Every step names the model that did it.</span>
+    </div>
+    <div style="display:flex;gap:28px;align-items:flex-start">
+      <div class="step">
+        <div style="display:flex;align-items:center;gap:10px"><span class="node" style="background:#6B5AC6"></span><span style="flex:1;height:1px;background:var(--line-2)"></span></div>
+        <h4>Frame</h4>
+        <p>Turns your question into a resolution the council can argue, and notes how much is at stake.</p>
+      </div>
+      <div class="step">
+        <div style="display:flex;align-items:center;gap:10px"><span class="node" style="background:#2F7D4E;box-shadow:0 0 0 3px #C97418 inset"></span><span style="flex:1;height:1px;background:var(--line-2)"></span></div>
+        <h4>Scout</h4>
+        <p>Each model stakes out a position on its own, before it sees anyone else's.</p>
+      </div>
+      <div class="step">
+        <div style="display:flex;align-items:center;gap:10px"><span class="node" style="background:#2F7D4E"></span><span style="flex:1;height:1px;background:var(--line-2)"></span></div>
+        <h4>Gather evidence</h4>
+        <p>Sources are pulled and graded. Anything promotional or undated is set aside.</p>
+      </div>
+      <div class="step">
+        <div style="display:flex;align-items:center;gap:10px"><span class="node" style="background:#2F7D4E;box-shadow:0 0 0 3px #C97418 inset"></span><span style="flex:1;height:1px;background:var(--line-2)"></span></div>
+        <h4>Debate</h4>
+        <p>Opening, cross-examination, rebuttal, closing. Every turn says which sources it leans on.</p>
+      </div>
+      <div class="step">
+        <div style="display:flex;align-items:center;gap:10px"><span class="node" style="background:#6B5AC6"></span></div>
+        <h4>Judge</h4>
+        <p>A neutral model scores both sides, writes the verdict, and says what would change its mind.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- what comes back -->
+  <section style="position:relative;padding:96px 120px 96px;display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));gap:20px">
+    <div style="display:flex;flex-direction:column;gap:14px;padding:28px;border-radius:18px;background:var(--card);border:1px solid var(--line)">
+      <div style="display:flex;align-items:flex-end;gap:14px">
+        <span style="font-family:var(--display);font-size:56px;line-height:1;color:var(--ink)">72<span style="font-size:28px;color:var(--ink-3)">%</span></span>
+        <div style="flex:1;height:8px;border-radius:4px;background:var(--well);overflow:hidden;margin-bottom:10px;display:flex"><span style="width:58%;background:#2F7D4E"></span><span style="width:42%;background:#C97418"></span></div>
+      </div>
+      <h3 style="font-size:18px;font-weight:600">A verdict with a confidence figure</h3>
+      <p style="font-size:14.5px;color:var(--ink-2)">Not a paragraph that hedges. A call, a number, and the five dimensions it rests on.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;padding:28px;border-radius:18px;background:var(--card);border:1px solid var(--line)">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <span style="font-family:var(--mono);font-size:12px;padding:5px 9px;border-radius:7px;background:var(--pro-tint);color:var(--pro-ink)">S1 · Gartner 2025</span>
+        <span style="font-family:var(--mono);font-size:12px;padding:5px 9px;border-radius:7px;background:var(--pro-tint);color:var(--pro-ink)">S4 · Zendesk CX</span>
+        <span style="font-family:var(--mono);font-size:12px;padding:5px 9px;border-radius:7px;background:var(--well);color:var(--ink-3);text-decoration:line-through">S7 · vendor blog</span>
+      </div>
+      <h3 style="font-size:18px;font-weight:600">Every claim links to a source</h3>
+      <p style="font-size:14.5px;color:var(--ink-2)">Sources are graded primary, expert or context. The ones that were rejected stay visible, crossed out.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;padding:28px;border-radius:18px;background:var(--card);border:1px solid var(--line)">
+      <div style="display:flex;align-items:center;gap:-4px">
+        <span style="width:36px;height:36px;border-radius:50%;background:var(--pro-tint);color:var(--pro-ink);display:grid;place-items:center;font-size:12px;font-weight:600;border:2px solid var(--card)">P1</span>
+        <span style="width:36px;height:36px;border-radius:50%;background:var(--pro-tint);color:var(--pro-ink);display:grid;place-items:center;font-size:12px;font-weight:600;border:2px solid var(--card);margin-left:-8px">P2</span>
+        <span style="width:36px;height:36px;border-radius:50%;background:var(--con-tint);color:var(--con-ink);display:grid;place-items:center;font-size:12px;font-weight:600;border:2px solid var(--card);margin-left:-8px">C1</span>
+        <span style="width:36px;height:36px;border-radius:50%;background:var(--con-tint);color:var(--con-ink);display:grid;place-items:center;font-size:12px;font-weight:600;border:2px solid var(--card);margin-left:-8px">C2</span>
+        <span style="width:36px;height:36px;border-radius:50%;background:var(--judge-tint);color:var(--judge-ink);display:grid;place-items:center;font-size:12px;font-weight:600;border:2px solid var(--card);margin-left:-8px">J</span>
+      </div>
+      <h3 style="font-size:18px;font-weight:600">Every step names its model</h3>
+      <p style="font-size:14.5px;color:var(--ink-2)">Latency, tokens and cost for each call, on every run. When a model fails, the gap is reported, never filled in.</p>
+    </div>
+  </section>
+
+</div>
+</x-dc>
+</body>
+</html>

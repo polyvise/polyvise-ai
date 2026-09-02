@@ -1,0 +1,143 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
+  <style>
+    body{margin:0;font-family:"Instrument Sans","Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+    a{color:#23613C;text-decoration:none} a:hover{color:#2F7D4E}
+    h1,h2,h3,p{margin:0}
+    .sw{display:flex;flex-direction:column;gap:6px;flex:1;min-width:0}
+    .sw .c{height:52px;border-radius:10px}
+    .sw .n{font-size:12.5px;font-weight:500}
+    .sw .h{font-family:"JetBrains Mono",Menlo,monospace;font-size:11px;opacity:.65}
+    .lbl{font-size:12px;font-weight:600;letter-spacing:.02em;opacity:.6}
+  </style>
+</helmet>
+
+<div style="width:1440px;min-height:960px;display:grid;grid-template-columns:repeat(2, minmax(0, 1fr))">
+
+  <!-- LIGHT -->
+  <div style="background:#F6F3EC;color:#1C1B17;padding:44px 48px;display:flex;flex-direction:column;gap:34px">
+    <div style="display:flex;align-items:baseline;gap:14px">
+      <h1 style="font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:34px;letter-spacing:-.01em">Paper, light</h1>
+      <span style="font-size:14px;color:#847F75">the default</span>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <span class="lbl">Surfaces and ink</span>
+      <div style="display:flex;gap:10px">
+        <div class="sw"><div class="c" style="background:#F6F3EC;border:1px solid rgba(28,27,23,.1)"></div><span class="n">paper</span><span class="h">#F6F3EC</span></div>
+        <div class="sw"><div class="c" style="background:#FFFFFF;border:1px solid rgba(28,27,23,.1)"></div><span class="n">card</span><span class="h">#FFFFFF</span></div>
+        <div class="sw"><div class="c" style="background:#EEEAE1"></div><span class="n">well</span><span class="h">#EEEAE1</span></div>
+        <div class="sw"><div class="c" style="background:#1C1B17"></div><span class="n">ink</span><span class="h">#1C1B17</span></div>
+        <div class="sw"><div class="c" style="background:#4B4842"></div><span class="n">ink 2</span><span class="h">#4B4842</span></div>
+        <div class="sw"><div class="c" style="background:#847F75"></div><span class="n">ink 3</span><span class="h">#847F75</span></div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <span class="lbl">Sides, kept from today: for, against, judge</span>
+      <div style="display:flex;gap:10px">
+        <div class="sw"><div class="c" style="background:#2F7D4E"></div><span class="n">for</span><span class="h">#2F7D4E</span></div>
+        <div class="sw"><div class="c" style="background:#E1F1E6"></div><span class="n">for tint</span><span class="h">#E1F1E6</span></div>
+        <div class="sw"><div class="c" style="background:#C97418"></div><span class="n">against</span><span class="h">#C97418</span></div>
+        <div class="sw"><div class="c" style="background:#FBEDDA"></div><span class="n">against tint</span><span class="h">#FBEDDA</span></div>
+        <div class="sw"><div class="c" style="background:#6B5AC6"></div><span class="n">judge</span><span class="h">#6B5AC6</span></div>
+        <div class="sw"><div class="c" style="background:#ECE8F9"></div><span class="n">judge tint</span><span class="h">#ECE8F9</span></div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <span class="lbl">Type</span>
+      <div style="font-family:'Instrument Serif',Georgia,serif;font-size:56px;line-height:1;letter-spacing:-.012em">Instrument Serif, 72 / 40 / 32</div>
+      <div style="font-size:19px;color:#4B4842">Instrument Sans for everything you read. 19 lede, 15 body, 13.5 small.</div>
+      <div style="font-family:'JetBrains Mono',Menlo,monospace;font-size:12.5px;color:#847F75">JetBrains Mono only for model ids, costs and source refs.</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <span class="lbl">Controls</span>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <button style="height:48px;padding:0 24px;border-radius:999px;border:0;background:#2F7D4E;color:#fff;font-family:inherit;font-size:16px;font-weight:600">Start the debate</button>
+        <button style="height:40px;padding:0 18px;border-radius:999px;border:0;background:#1C1B17;color:#F6F3EC;font-family:inherit;font-size:14px;font-weight:600">New question</button>
+        <button style="height:40px;padding:0 16px;border-radius:999px;border:1px solid rgba(28,27,23,.18);background:#fff;color:#1C1B17;font-family:inherit;font-size:14px;font-weight:500">Export</button>
+        <span style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:#E1F1E6;color:#23613C;font-size:13.5px;font-weight:600"><span style="width:7px;height:7px;border-radius:50%;background:#2F7D4E"></span>The council leans yes</span>
+        <span style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:#FBEDDA;color:#9A5710;font-size:13.5px;font-weight:600"><span style="width:7px;height:7px;border-radius:50%;background:#C97418"></span>Leans no</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="width:34px;height:34px;border-radius:50%;background:#E1F1E6;color:#23613C;display:grid;place-items:center;font-size:12px;font-weight:600">P1</span>
+        <span style="width:34px;height:34px;border-radius:50%;background:#FBEDDA;color:#9A5710;display:grid;place-items:center;font-size:12px;font-weight:600">C1</span>
+        <span style="width:34px;height:34px;border-radius:50%;background:#ECE8F9;color:#5245A0;display:grid;place-items:center;font-size:12px;font-weight:600">J</span>
+        <span style="font-family:'JetBrains Mono',Menlo,monospace;font-size:11.5px;padding:3px 7px;border-radius:6px;background:#EEEAE1;color:#4B4842">S4</span>
+        <div style="flex:1;display:flex;align-items:center;height:44px;padding:0 14px;border-radius:12px;background:#EEEAE1;color:#847F75;font-size:14px">Ask a follow-up</div>
+      </div>
+      <p style="font-size:13.5px;color:#847F75">Radii 12 / 18 / 22 and pills. Controls 40, primary 48. Soft warm shadow, one level only.</p>
+    </div>
+  </div>
+
+  <!-- DARK -->
+  <div style="background:#15140F;color:#F1EDE3;padding:44px 48px;display:flex;flex-direction:column;gap:34px">
+    <div style="display:flex;align-items:baseline;gap:14px">
+      <h1 style="font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:34px;letter-spacing:-.01em">Paper, dark</h1>
+      <span style="font-size:14px;color:#8E887B">same tokens, warm not blue</span>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <span class="lbl">Surfaces and ink</span>
+      <div style="display:flex;gap:10px">
+        <div class="sw"><div class="c" style="background:#15140F;border:1px solid rgba(241,237,227,.12)"></div><span class="n">paper</span><span class="h">#15140F</span></div>
+        <div class="sw"><div class="c" style="background:#1F1D17"></div><span class="n">card</span><span class="h">#1F1D17</span></div>
+        <div class="sw"><div class="c" style="background:#0F0E0A"></div><span class="n">well</span><span class="h">#0F0E0A</span></div>
+        <div class="sw"><div class="c" style="background:#F1EDE3"></div><span class="n">ink</span><span class="h">#F1EDE3</span></div>
+        <div class="sw"><div class="c" style="background:#BDB7AA"></div><span class="n">ink 2</span><span class="h">#BDB7AA</span></div>
+        <div class="sw"><div class="c" style="background:#8E887B"></div><span class="n">ink 3</span><span class="h">#8E887B</span></div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <span class="lbl">Sides</span>
+      <div style="display:flex;gap:10px">
+        <div class="sw"><div class="c" style="background:#5FC98A"></div><span class="n">for</span><span class="h">#5FC98A</span></div>
+        <div class="sw"><div class="c" style="background:#173224"></div><span class="n">for tint</span><span class="h">#173224</span></div>
+        <div class="sw"><div class="c" style="background:#F0A24A"></div><span class="n">against</span><span class="h">#F0A24A</span></div>
+        <div class="sw"><div class="c" style="background:#3A2A14"></div><span class="n">against tint</span><span class="h">#3A2A14</span></div>
+        <div class="sw"><div class="c" style="background:#A997E6"></div><span class="n">judge</span><span class="h">#A997E6</span></div>
+        <div class="sw"><div class="c" style="background:#2A2540"></div><span class="n">judge tint</span><span class="h">#2A2540</span></div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <span class="lbl">Type</span>
+      <div style="font-family:'Instrument Serif',Georgia,serif;font-size:56px;line-height:1;letter-spacing:-.012em">Same faces, same sizes.</div>
+      <div style="font-size:19px;color:#BDB7AA">Warm ivory ink on a warm near-black, so it reads like the light theme at night rather than a different product.</div>
+      <div style="font-family:'JetBrains Mono',Menlo,monospace;font-size:12.5px;color:#8E887B">anthropic/claude-opus-4.8 · $0.14</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <span class="lbl">Controls</span>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <button style="height:48px;padding:0 24px;border-radius:999px;border:0;background:#5FC98A;color:#0B2214;font-family:inherit;font-size:16px;font-weight:600">Start the debate</button>
+        <button style="height:40px;padding:0 18px;border-radius:999px;border:0;background:#F1EDE3;color:#15140F;font-family:inherit;font-size:14px;font-weight:600">New question</button>
+        <button style="height:40px;padding:0 16px;border-radius:999px;border:1px solid rgba(241,237,227,.2);background:#1F1D17;color:#F1EDE3;font-family:inherit;font-size:14px;font-weight:500">Export</button>
+        <span style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:#173224;color:#5FC98A;font-size:13.5px;font-weight:600"><span style="width:7px;height:7px;border-radius:50%;background:#5FC98A"></span>The council leans yes</span>
+        <span style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:#3A2A14;color:#F0A24A;font-size:13.5px;font-weight:600"><span style="width:7px;height:7px;border-radius:50%;background:#F0A24A"></span>Leans no</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="width:34px;height:34px;border-radius:50%;background:#173224;color:#5FC98A;display:grid;place-items:center;font-size:12px;font-weight:600">P1</span>
+        <span style="width:34px;height:34px;border-radius:50%;background:#3A2A14;color:#F0A24A;display:grid;place-items:center;font-size:12px;font-weight:600">C1</span>
+        <span style="width:34px;height:34px;border-radius:50%;background:#2A2540;color:#A997E6;display:grid;place-items:center;font-size:12px;font-weight:600">J</span>
+        <span style="font-family:'JetBrains Mono',Menlo,monospace;font-size:11.5px;padding:3px 7px;border-radius:6px;background:#0F0E0A;color:#BDB7AA">S4</span>
+        <div style="flex:1;display:flex;align-items:center;height:44px;padding:0 14px;border-radius:12px;background:#0F0E0A;color:#8E887B;font-size:14px">Ask a follow-up</div>
+      </div>
+      <p style="font-size:13.5px;color:#8E887B">Sides get lighter and a little more saturated so they clear contrast on dark; tints become deep, not translucent.</p>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

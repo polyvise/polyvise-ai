@@ -12,16 +12,19 @@ export const metadata: Metadata = {
 };
 
 const slotLabels: Record<SlotId, { label: string; tone: string }> = {
-  quick: { label: "quick", tone: "pro" },
-  deep: { label: "deep", tone: "con" },
-  judge: { label: "judge", tone: "judge" }
+  yes: { label: "Pro side", tone: "pro" },
+  no: { label: "Con side", tone: "con" },
+  deep: { label: "Claims", tone: "neutral" },
+  judge: { label: "Judge", tone: "judge" },
+  quick: { label: "Framing & evidence", tone: "neutral" }
 };
 
 export default function LabPage() {
   const { configured, mock } = labProviderStatus();
-  const defaultSlotFor = new Map<string, SlotId>();
+  // A model can hold several seats by default; the roster lists all of them.
+  const defaultSlotsFor = new Map<string, SlotId[]>();
   for (const [slot, model] of Object.entries(defaultSelections) as [SlotId, string][]) {
-    if (!defaultSlotFor.has(model)) defaultSlotFor.set(model, slot);
+    defaultSlotsFor.set(model, [...(defaultSlotsFor.get(model) ?? []), slot]);
   }
 
   return (
@@ -82,7 +85,7 @@ export default function LabPage() {
               <tr>
                 <th>Model</th>
                 <th>Provider</th>
-                <th>Default slot</th>
+                <th>Default seats</th>
                 <th>Speed</th>
                 <th>Tier</th>
                 <th>State</th>
@@ -90,7 +93,7 @@ export default function LabPage() {
             </thead>
             <tbody>
               {modelCatalog.map((model) => {
-                const slot = defaultSlotFor.get(model.id);
+                const seats = defaultSlotsFor.get(model.id) ?? [];
                 const experimental = model.compatibility === "experimental";
                 return (
                   <tr key={model.id} className={experimental ? "dim" : undefined}>
@@ -99,10 +102,16 @@ export default function LabPage() {
                     </td>
                     <td>{model.provider}</td>
                     <td>
-                      {slot ? (
-                        <span className={`chip ${slotLabels[slot].tone}`}>{slotLabels[slot].label}</span>
+                      {seats.length ? (
+                        <span className="row gap6 wrap">
+                          {seats.map((slot) => (
+                            <span className={`chip ${slotLabels[slot].tone}`} key={slot}>
+                              {slotLabels[slot].label}
+                            </span>
+                          ))}
+                        </span>
                       ) : (
-                        <span className="chip">—</span>
+                        <span className="meta">—</span>
                       )}
                     </td>
                     <td>{model.speed}</td>

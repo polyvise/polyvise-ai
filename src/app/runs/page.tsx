@@ -39,7 +39,7 @@ export default async function RunsPage() {
             <h3 className="display d3 mt6">Anonymous totals</h3>
           </div>
           <span className="small">
-            <Link href={"/telemetry" as Route} style={{ color: "var(--pro)" }}>
+            <Link href={"/telemetry" as Route} className="link">
               Full engine health →
             </Link>
           </span>

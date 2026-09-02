@@ -8,6 +8,7 @@ import {
   createDefaultDebateRepository,
   createDefaultFeedbackRepository
 } from "./repository";
+import { countAgentOutputs, type PolyviseRecord } from "@/lib/run-record";
 import { isRosterSnapshot, stepForSnapshot, stepLabels, type StepId } from "@/lib/run-view";
 
 export interface StepReliability {
@@ -53,7 +54,7 @@ export async function getPublicStats(): Promise<PublicStats> {
 }
 
 export function summarizePublicStats(
-  debates: DebateRecord[],
+  debates: PolyviseRecord[],
   feedback: UserFeedback[],
   now = new Date()
 ): PublicStats {
@@ -94,7 +95,7 @@ export function summarizePublicStats(
     }
 
     totalSources += run.sources.length;
-    totalTurns += run.turns.length;
+    totalTurns += countAgentOutputs(run);
     runsWithStoredRun += 1;
     let runHadFallback = false;
     const modelsInDebate = new Set<string>();
