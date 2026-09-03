@@ -180,14 +180,32 @@ export function Composer() {
     <form onSubmit={handleSubmit}>
       <div className="composer">
         <div className="composer-top">
-          <textarea
-            className="q-input"
-            rows={2}
-            value={subject}
-            onChange={(event) => setSubject(event.target.value)}
-            placeholder="Should a 40-person company move customer support to AI-first this year?"
-            aria-label="Your question"
-          />
+          <label className="q-field-label" htmlFor="subject">
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.5}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M10.5 2.5a1.5 1.5 0 0 1 2 2L4.5 12.5l-3 .8.8-3z" />
+            </svg>
+            Type your question
+          </label>
+          <div className="q-field">
+            <textarea
+              id="subject"
+              className="q-input"
+              rows={2}
+              value={subject}
+              onChange={(event) => setSubject(event.target.value)}
+              placeholder="Should a 40-person company move customer support to AI-first this year?"
+            />
+          </div>
         </div>
 
         <div className="composer-mid">
