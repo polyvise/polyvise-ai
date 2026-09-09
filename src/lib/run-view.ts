@@ -1,3 +1,4 @@
+import { normalizeDebateOutput } from "./debate-terminology";
 import type {
   ArgumentEdge,
   ArgumentNode,
@@ -193,7 +194,7 @@ function fallbacksFromRun(run: DebateRun | undefined): {
 }
 
 export function initialStateFromRecord(record: DebateRecord): RunViewState {
-  const run = record.latestRun;
+  const run = normalizeDebateOutput(record.latestRun);
   const snapshots = run?.modelSnapshots ?? [];
   const { fallbacks, turnFailuresByRound } =
     fallbacksFromRun(run) ?? deriveFallbacks(snapshots);
@@ -238,7 +239,7 @@ export function runViewReducer(state: RunViewState, action: RunViewAction): RunV
     return { ...initialStateFromRecord(action.record), errorMessage: state.errorMessage };
   }
 
-  const event = action.event;
+  const event = normalizeDebateOutput(action.event);
   switch (event.kind) {
     case "stage":
       return { ...state, status: event.status };

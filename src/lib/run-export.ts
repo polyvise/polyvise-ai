@@ -1,3 +1,4 @@
+import { normalizeDebateOutput } from "./debate-terminology";
 import {
   asAdvisoryPanelRun,
   asConsensusRun,
@@ -17,6 +18,7 @@ export function isSimulatedRun(record: PolyviseRecord): boolean {
 
 /** Portable text from the stored result; never invent a missing verdict. */
 export function runBrief(record: PolyviseRecord): string {
+  record = normalizeDebateOutput(record);
   const lines = [
     `# ${record.resolution || record.subject}`,
     "",

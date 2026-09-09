@@ -818,8 +818,8 @@ function slotForRole(role: string): { label: string; tone: string } {
   }
   // Mirrors the engine's own routing (modelForRole): side names win, then
   // claims, then everything else lands on the framing seat.
-  if (normalized.includes("yes frog")) return { label: "pro side", tone: "pro" };
-  if (normalized.includes("no frog")) return { label: "con side", tone: "con" };
+  if (normalized.includes("supporting debater") || normalized.includes("pro side")) return { label: "pro side", tone: "pro" };
+  if (normalized.includes("opposing debater") || normalized.includes("con side")) return { label: "con side", tone: "con" };
   if (normalized.includes("claim") || normalized.includes("rebuttal")) return { label: "claims", tone: "neutral" };
   return { label: "framing", tone: "neutral" };
 }
