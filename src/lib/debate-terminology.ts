@@ -1,6 +1,6 @@
 /** Compatibility for role names embedded in output from older debate engines. */
 export function currentDebateTerminology(text: string): string {
-  return text.replace(/\b(green|yes|pink|no|judge|neutral) frog(s)?\b/gi, (_match, role: string, plural: string | undefined) => {
+  return text.replace(/\bother frog\b/gi, "other debater").replace(/\b(green|yes|pink|no|judge|neutral) frog(s)?\b/gi, (_match, role: string, plural: string | undefined) => {
     const side = role.toLowerCase();
     if (side === "judge" || side === "neutral") return plural ? "judges" : "judge";
     return `${side === "green" || side === "yes" ? "supporting" : "opposing"} ${plural ? "debaters" : "debater"}`;
