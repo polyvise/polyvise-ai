@@ -21,37 +21,37 @@ type Sample = {
 const samples: Record<DebateMode, Sample> = {
   hybrid_council: {
     tag: "Conditional yes",
-    title: "Try a pilot before making a promise.",
-    body: "A shorter week could improve focus and retention. Make the decision reversible: pilot it for one quarter, with explicit customer coverage and delivery measures.",
+    title: "Launch a limited free plan.",
+    body: "Keep a clear upgrade path and measure support cost. A limited free plan could help people experience the product before committing to a paid subscription.",
     opinions: [
       {
         label: "The case for",
-        body: "Fewer meetings and clearer priorities could protect focused work. A shorter week may also make the team easier to recruit for.",
+        body: "A free plan lowers the barrier to entry, encourages product discovery, and gives potential customers a reason to try the product.",
         tone: "for",
       },
       {
         label: "The case against",
-        body: "Support coverage may become harder. Compressing the same workload into fewer days could increase stress.",
+        body: "Free accounts can increase support costs and attract users who never convert. Existing customers may also downgrade.",
         tone: "against",
       },
     ],
     detail: "What would change this verdict?",
     detailBody:
-      "Evidence of slower incident response, sustained delivery slippage, or higher workload stress would count against continuing the pilot.",
+      "Rising support costs, low paid conversion, or substantial downgrades would count against expanding the free plan.",
   },
   consensus: {
     tag: "Partial agreement",
     title: "Agreement on the experiment. Less on the outcome.",
-    body: "The perspectives find common ground on a reversible trial. They remain split on whether fewer hours will improve productivity for this particular team.",
+    body: "The perspectives agree on testing a limited free plan. They remain split on whether new paid conversions would cover the additional cost.",
     opinions: [
       {
         label: "Common ground",
-        body: "Define success before starting, protect customer coverage, and compare results with the team’s own baseline.",
+        body: "Set clear usage limits, preserve a useful paid upgrade, and measure activation, conversion, and support cost.",
         tone: "for",
       },
       {
         label: "A view that holds out",
-        body: "The cautious perspective wants evidence that workload can actually shrink before reducing working hours.",
+        body: "The cautious perspective wants evidence of paid demand before offering more of the product for free.",
         tone: "against",
       },
     ],
@@ -61,33 +61,33 @@ const samples: Record<DebateMode, Sample> = {
   },
   advisory_panel: {
     tag: "Chair’s synthesis",
-    title: "Design the conditions for a fair trial.",
-    body: "The advisors point to different prerequisites: a sustainable cost, equitable access, reliable coverage, and a clear way to recognize failure.",
+    title: "Give the free plan clear guardrails.",
+    body: "The advisors examine unit economics, transparent limits, support capacity, and the risk of replacing paid revenue with free usage.",
     opinions: [
       {
         label: "Economist",
-        body: "Compare the cost of extra coverage with the expected retention and productivity gains.",
+        body: "Compare the cost of free accounts with the value of customers who upgrade.",
         tone: "advisor",
       },
       {
         label: "Operator",
-        body: "Reduce meeting load first, then assign one owner for scheduling and incident handoffs.",
+        body: "Define usage limits and a support policy that the team can sustain.",
         tone: "advisor",
       },
       {
         label: "Ethicist",
-        body: "Make sure customer-facing roles can benefit too, without shifting hidden overtime onto them.",
+        body: "Explain the limits clearly so users can make an informed choice before investing time in the product.",
         tone: "advisor",
       },
       {
         label: "Skeptic",
-        body: "Set failure measures and rollback criteria before the pilot begins.",
+        body: "Watch for paid customers downgrading and free users who generate costs without converting.",
         tone: "advisor",
       },
     ],
     detail: "What should happen next?",
     detailBody:
-      "Name an owner for the pilot, ask the team where the workload can shrink, and agree on both success and stop conditions. The chair offers guidance rather than choosing a winning side.",
+      "Name an owner for the trial, set a review date, and agree on conversion and cost thresholds. The chair offers guidance rather than choosing a winning side.",
   },
 };
 
@@ -106,7 +106,7 @@ export function ExampleExplorer() {
           Same question. <br />
           <em>Three useful angles.</em>
         </h2>
-        <p>“Should our engineering team adopt a four-day workweek?”</p>
+        <p>“Should we launch a free plan?”</p>
         <div className="example-mode-picker" aria-label="Example mode">
           {modeOrder.map((id) => (
             <button
