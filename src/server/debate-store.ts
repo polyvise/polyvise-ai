@@ -1,3 +1,4 @@
+import { withPolyviseTerminology } from "./polyvise-provider";
 import { normalizeDebateOutput } from "@/lib/debate-terminology";
 import { randomUUID } from "node:crypto";
 import { createDefaultLlmProvider, LlmProviderFailure } from "@polyvise/core/providers/llm";
@@ -221,14 +222,15 @@ async function runForMode(
   config: DebateRuntimeConfig,
   emit: (event: RunLiveEvent) => void
 ): Promise<StoredRun> {
+  const provider = withPolyviseTerminology(createDefaultLlmProvider(config));
   switch (request.mode) {
     case "consensus":
-      return runConsensus(debateId, request, framed, { config, emit });
+      return runConsensus(debateId, request, framed, { config, emit, provider });
     case "advisory_panel":
-      return runAdvisoryPanel(debateId, request, framed, { config, emit });
+      return runAdvisoryPanel(debateId, request, framed, { config, emit, provider });
     case "hybrid_council":
     default:
-      return runHybridCouncilDebate(debateId, request, framed, { config, emit });
+      return runHybridCouncilDebate(debateId, request, framed, { config, emit, provider });
   }
 }
 
@@ -323,7 +325,7 @@ async function answerFollowup(question: string, debate: PolyviseRecord): Promise
   };
 
   try {
-    const result = await createDefaultLlmProvider().generateStructured<unknown>({
+    const result = await withPolyviseTerminology(createDefaultLlmProvider()).generateStructured<unknown>({
       role: "follow-up answer",
       schemaName: "followupOutput",
       prompt: JSON.stringify(fallback)
