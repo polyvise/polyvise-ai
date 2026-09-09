@@ -178,7 +178,7 @@ export function Composer({
                 <span className="input-count">{context.length}/1600</span>
               </div>
             )}
-            <details className="question-examples"><summary>Try a question</summary>
+            <details className="question-examples"><summary>Example questions</summary>
 
               {guide.examples.map((example) => (
                 <button
