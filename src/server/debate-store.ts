@@ -1,3 +1,4 @@
+import { normalizeDebateOutput } from "@/lib/debate-terminology";
 import { randomUUID } from "node:crypto";
 import { createDefaultLlmProvider, LlmProviderFailure } from "@polyvise/core/providers/llm";
 import {
@@ -37,9 +38,9 @@ export type RunLiveEvent = DebateLiveEvent | ConsensusLiveEvent | AdvisoryPanelL
 const repository = createDefaultDebateRepository();
 const feedbackRepository = createDefaultFeedbackRepository();
 export const DEBATE_UNAVAILABLE_MESSAGE =
-  "The frogs couldn't start a debate right now. Please try again in a few minutes.";
+  "The debate couldn't start right now. Please try again in a few minutes.";
 export const DEBATE_JUDGE_UNAVAILABLE_MESSAGE =
-  "The judge frog couldn't finish this debate right now. Please try again in a few minutes.";
+  "The judge couldn't finish this debate right now. Please try again in a few minutes.";
 
 type Listener = (event: RunLiveEvent) => void;
 
@@ -49,6 +50,7 @@ class DebateEventBus {
   private terminal = false;
 
   emit(event: RunLiveEvent): void {
+    event = normalizeDebateOutput(event);
     this.buffer.push(event);
     for (const listener of this.listeners) {
       try {
@@ -254,12 +256,13 @@ export function subscribeToDebate(
   return { unsubscribe, terminal: bus.isTerminal() };
 }
 
-export function getDebate(id: string): Promise<PolyviseRecord | null> {
-  return repository.get(id);
+export async function getDebate(id: string): Promise<PolyviseRecord | null> {
+  const record = await repository.get(id);
+  return record ? normalizeDebateOutput(record) : null;
 }
 
-export function listDebates(): Promise<PolyviseRecord[]> {
-  return repository.list();
+export async function listDebates(): Promise<PolyviseRecord[]> {
+  return normalizeDebateOutput(await repository.list());
 }
 
 export async function submitFeedback(input: {
@@ -273,7 +276,7 @@ export async function submitFeedback(input: {
   const parsed = feedbackRequestSchema.parse(input);
   const feedback: UserFeedback = {
     id: `feedback_${randomUUID().slice(0, 12)}`,
-    app: input.app?.trim() || "debatefrog",
+    app: input.app?.trim() || "polyvise",
     message: parsed.message,
     debateId: parsed.debateId || undefined,
     pagePath: parsed.pagePath || undefined,
