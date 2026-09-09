@@ -3104,6 +3104,9 @@ th.num {
 .sample-label.against {
   color: var(--con-ink);
 }
+.sample-label.advisor {
+  color: var(--ink);
+}
 .sample-brief details {
   font-size: 12px;
 }
