@@ -68,7 +68,6 @@ body { background: var(--void); }
 .canvas-settings { font-size: 11px; flex-shrink: 0; }
 .canvas-status { display: flex; gap: 12px; align-items: center; color: var(--muted); font-size: 11px; margin: 28px 0 14px; }
 .canvas-status span:first-child { color: var(--pro-ink); font-weight: 600; }
-.canvas-status span:last-child { margin-left: auto; }
 .perspective-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; }
 .perspective-card { min-width: 0; padding: 24px; border: 1px solid; border-radius: 9px; display: flex; flex-direction: column; }
 .perspective-0 { background: var(--pc-green); border-color: var(--pc-green-line); }
@@ -116,6 +115,6 @@ body { background: var(--void); }
  .canvas-home { padding: 12px 10px 30px; } .perspective-grid { grid-template-columns: 1fr; }
  .perspective-card { min-height: 235px; } .canvas-home .goal-name { font-size: 12px; } .canvas-home .goal-mode { font-size: 10px; }
  .canvas-home .goal-option { padding: 12px 8px; } .canvas-home .goal-check { display: none; }
- .canvas-status span:last-child { margin-left: 0; } .canvas-heading h1 { font-size: 32px; }
+ .canvas-heading h1 { font-size: 32px; }
  .result-perspectives { grid-template-columns: 1fr; } .canvas-connectors { display: none; } .d2 { font-size: 28px; }
 }
