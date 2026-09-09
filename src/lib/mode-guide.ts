@@ -21,11 +21,11 @@ export const modeGuide = {
     outcome: "A verdict you can examine",
     start: "Start the debate",
     href: "/debate",
-    placeholder: "Should we launch a free plan?",
+    placeholder: "Should our engineering team adopt a four-day workweek?",
     examples: [
-      "Should we launch a free plan?",
-      "Should we expand into Europe?",
-      "Should we expand support to 24/7?",
+      "Should our engineering team adopt a four-day workweek?",
+      "Should a startup build its own authentication system?",
+      "Should cities make public transit free?",
     ],
     steps: [
       "Frame the question and gather evidence",
@@ -49,11 +49,11 @@ export const modeGuide = {
     start: "Find common ground",
     href: "/consensus",
     placeholder:
-      "How can we improve activation?",
+      "Can a small team safely migrate a production database in one quarter?",
     examples: [
-      "How can we improve activation?",
-      "What should we prioritize to improve customer retention?",
-      "What would make our free plan sustainable?",
+      "Can a small team safely migrate a production database in one quarter?",
+      "Will AI coding tools reduce software maintenance costs?",
+      "Can a city meet most daily travel needs with bikes and transit?",
     ],
     steps: [
       "Gather evidence and assign independent perspectives",
@@ -77,11 +77,11 @@ export const modeGuide = {
     start: "Convene the panel",
     href: "/panel",
     placeholder:
-      "What’s our biggest growth bet?",
+      "How should a 20-person company introduce AI into customer support?",
     examples: [
-      "What’s our biggest growth bet?",
-      "How should we enter a new market?",
-      "How should we balance growth and profitability?",
+      "How should a 20-person company introduce AI into customer support?",
+      "How should a growing engineering team balance delivery and technical debt?",
+      "How could a neighborhood turn an empty lot into a shared space?",
     ],
     steps: [
       "Frame the strategy and gather evidence",
