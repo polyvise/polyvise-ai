@@ -1,117 +1,68 @@
-import type { Metadata } from "next";
+import type { Metadata, Route } from "next";
 import Link from "next/link";
-import type { Route } from "next";
+import { ArrowRight, Check } from "lucide-react";
+import { modeGuide, modeOrder } from "@/lib/mode-guide";
+import { ModeDiagram } from "@/components/mode-diagram";
 
 export const metadata: Metadata = {
-  title: "Modes | Polyvise",
-  description: "Debate, consensus, an advisory panel, and a lab for comparing models on one prompt."
+  title: "Choose a mode | Polyvise",
+  description:
+    "Choose a debate for a decision, consensus for agreement, or an advisory panel for strategy.",
 };
-
-const modes = [
-  {
-    href: "/debate" as Route,
-    title: "Debate",
-    body: "Two models argue for, two against, and a neutral judge scores the result. Six rounds, ending in a verdict with a confidence figure.",
-    best: "Best for yes-or-no decisions",
-    dots: (
-      <>
-        <span className="d pro" />
-        <span className="d pro" />
-        <span className="vs">vs</span>
-        <span className="d con" />
-        <span className="d con" />
-        <span className="bar" />
-        <span className="d judge" />
-      </>
-    )
-  },
-  {
-    href: "/consensus" as Route,
-    title: "Consensus",
-    body: "Several models answer alone, then see each other's positions and either revise or defend holding. Reports where they settled and who held out.",
-    best: "Best for estimates and forecasts",
-    dots: (
-      <>
-        <span className="d grey" />
-        <span className="d grey" style={{ opacity: 0.8 }} />
-        <span className="d grey" style={{ opacity: 0.6 }} />
-        <span className="d grey" style={{ opacity: 0.45 }} />
-        <span className="d grey" style={{ opacity: 0.3 }} />
-        <svg width="16" height="12" viewBox="0 0 16 12" fill="none" className="s-muted" strokeWidth={1.5} strokeLinecap="round" aria-hidden="true">
-          <path d="M1 6h13M10 2l4 4-4 4" />
-        </svg>
-        <span className="d pro" />
-      </>
-    )
-  },
-  {
-    href: "/panel" as Route,
-    title: "Advisory panel",
-    body: "An economist, an ethicist, an operator and a skeptic each advise in their own voice. A chair writes up where they agree and where they clash.",
-    best: "Best for strategy questions",
-    dots: (
-      <>
-        <span className="d lens1" />
-        <span className="d lens2" />
-        <span className="d lens3" />
-        <span className="d lens4" />
-        <span className="bar" />
-        <span className="d judge" />
-      </>
-    )
-  },
-  {
-    href: "/lab" as Route,
-    title: "Model lab",
-    body: "One prompt sent to every configured model, with the answers side by side and the latency, cost and token count for each.",
-    best: "Best for choosing which models to seat",
-    dots: (
-      <>
-        <span className="d grey" />
-        <span className="d grey" />
-        <span className="d grey" />
-      </>
-    )
-  }
-];
 
 export default function ModesPage() {
   return (
-    <section className="page">
-      <span className="eyebrow">Modes</span>
-      <h2 className="display d2 mt10">Four ways to work a question</h2>
+    <section className="page mode-guide-page">
+      <span className="eyebrow">A short field guide</span>
+      <h1 className="display d2 mt10">What kind of answer do you need?</h1>
       <p className="lede mt10 mw640">
-        Every mode runs the same engine and lands on the same run page: a result up top, the transcript underneath,
-        every source graded, and every model call on the record.
+        Start with the job you need done. Each mode brings a different structure
+        to the same question.
       </p>
-
-      <div className="grid g2 mt34" style={{ gap: 20 }}>
-        {modes.map((mode) => (
-          <Link key={mode.title} href={mode.href} className="mode-card">
-            <div className="mode-top">
-              <span className="dots" aria-hidden="true">
-                {mode.dots}
-              </span>
-            </div>
-            <h4>{mode.title}</h4>
-            <p>{mode.body}</p>
-            <div className="mode-foot">
-              <span className="chip neutral">{mode.best}</span>
-              <span className="mode-go" aria-hidden="true">
-                →
-              </span>
-            </div>
-          </Link>
-        ))}
+      <div className="mode-guide-grid">
+        {modeOrder.map((id) => {
+          const guide = modeGuide[id];
+          return (
+            <article key={id} className="guide-card">
+              <span className="eyebrow">{guide.goal}</span>
+              <h2 className="display">{guide.name}</h2>
+              <ModeDiagram mode={id} />
+              <p>{guide.description}</p>
+              <ul className="output-checklist">
+                {guide.outputs.map((output) => (
+                  <li key={output}>
+                    <Check size={14} />
+                    {output}
+                  </li>
+                ))}
+              </ul>
+              <details>
+                <summary>How it works</summary>
+                <p>{guide.rule}</p>
+                <Link href={guide.href as Route}>Read the full guide →</Link>
+              </details>
+              <Link
+                className="btn btn-primary"
+                href={`/?mode=${id}#ask` as Route}
+              >
+                Use {guide.name.toLowerCase()} <ArrowRight size={15} />
+              </Link>
+            </article>
+          );
+        })}
       </div>
-
-      <div className="cta-band">
-        <div className="cta-copy">
-          <h3 className="display d3">Ask something worth arguing about</h3>
-          <p className="small mt10">Pick a mode on the question box, choose your models if you like, and watch the transcript build.</p>
+      <div className="lab-callout">
+        <div>
+          <span className="eyebrow">Choosing a model instead?</span>
+          <h2 className="display d3">Take it to the Model lab.</h2>
+          <p>
+            Send one prompt to configured models and compare their answers,
+            timing and cost. This is a separate comparison tool, with its own
+            results.
+          </p>
         </div>
-        <Link href={"/" as Route} className="btn btn-primary btn-lg">
-          Ask a question
+        <Link href="/lab" className="btn">
+          Open the lab <ArrowRight size={15} />
         </Link>
       </div>
     </section>

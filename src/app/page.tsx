@@ -1,126 +1,130 @@
+import Link from "next/link";
+import {
+  ArrowDown,
+  ArrowUpRight,
+  Braces,
+  GitBranch,
+  ScanLine,
+} from "lucide-react";
 import { Composer } from "@/components/composer";
+import { ExampleExplorer } from "@/components/example-explorer";
+import { parseMode } from "@/lib/mode-guide";
 
-/**
- * The question box is the home page. What follows it answers the two things
- * a first-time visitor wants to know before pressing start: what happens,
- * and what comes back.
- */
-const pipeline = [
-  {
-    title: "Frame",
-    detail: "Turns your question into a resolution the council can argue, and notes how much is at stake.",
-    tone: "judge"
-  },
-  {
-    title: "Scout",
-    detail: "Each model stakes out a position on its own, before it sees anyone else's.",
-    tone: "split"
-  },
-  {
-    title: "Gather evidence",
-    detail: "Sources are pulled and graded. Anything promotional or undated is set aside.",
-    tone: "pro"
-  },
-  {
-    title: "Debate",
-    detail: "Opening, cross-examination, rebuttal, closing. Every turn says which sources it leans on.",
-    tone: "split"
-  },
-  {
-    title: "Judge",
-    detail: "A neutral model scores both sides, writes the verdict, and says what would change its mind.",
-    tone: "judge"
-  }
-];
+type Props = { searchParams: Promise<{ mode?: string | string[] }> };
 
-export default function HomePage() {
+export default async function HomePage({ searchParams }: Props) {
+  const params = await searchParams;
+  const initialMode = parseMode(
+    typeof params.mode === "string" ? params.mode : undefined,
+  );
   return (
-    <div className="home">
-      <div className="home-glow" />
-
-      <section className="hero">
-        <span className="hero-kicker">Several models. One structured argument. An answer you can check.</span>
-        <h1 className="display d1">
-          Ask a hard question.
-          <br />
-          Several AI models argue it out.
-          <br />
-          A neutral judge gives you the verdict.
-        </h1>
-        <p className="lede">
-          Every claim links to the source behind it, and every step names the model that produced it.
-        </p>
-      </section>
-
-      <section className="home-section" style={{ paddingTop: 20 }}>
-        <Composer />
-      </section>
-
-      <section className="home-section" id="how-it-works">
-        <div className="section-head">
-          <h2 className="display">What happens after you press start</h2>
-          <span className="small">Every step names the model that did it.</span>
+    <div className="decision-home">
+      <section className="decision-hero">
+        <div>
+          <span className="eyebrow">
+            <span className="hero-mini-mark" />A workspace for better questions
+          </span>
+          <h1 className="display">
+            One question.
+            <br />
+            <em>A room full of perspectives.</em>
+          </h1>
+          <p>
+            Think beyond the first answer. Let AI perspectives debate a
+            decision, find common ground, or examine your next move.
+          </p>
         </div>
-        <div className="pipeline">
-          {pipeline.map((step, index) => (
-            <div className="pipe-step" key={step.title}>
-              <div className="pipe-rail">
-                <span className={`pipe-node ${step.tone}`} />
-                {index < pipeline.length - 1 ? <span className="pipe-line" /> : null}
-              </div>
-              <div className="pipe-t">{step.title}</div>
-              <div className="pipe-d">{step.detail}</div>
-            </div>
-          ))}
-        </div>
+        <a href="#example" className="hero-example">
+          Curious? See an example
+          <ArrowDown size={16} />
+        </a>
       </section>
-
-      <section className="home-section" style={{ paddingTop: 88 }}>
-        <div className="grid g3" style={{ gap: 20 }}>
-          <div className="promise">
-            <div className="promise-figure">
-              <span className="big">
-                72<span>%</span>
-              </span>
-              <div className="balance-bar" style={{ flex: 1, marginBottom: 10, height: 8 }}>
-                <div className="balance-pro" style={{ width: "58%" }} />
-                <div className="balance-con" style={{ width: "42%" }} />
-              </div>
-            </div>
-            <h3>A verdict with a confidence figure</h3>
-            <p>Not a paragraph that hedges. A call, a number, and the five dimensions it rests on.</p>
+      <Composer key={initialMode} initialMode={initialMode} />
+      <div className="workspace-footnote">
+        <span>Three ways to think. One place to inspect the reasoning.</span>
+        <Link href="/modes">
+          Help me choose a mode <ArrowUpRight size={14} />
+        </Link>
+      </div>
+      <ExampleExplorer />
+      <section className="build-section" aria-labelledby="build-title">
+        <div className="build-heading">
+          <span className="eyebrow">Built to show its work</span>
+          <h2 id="build-title" className="display">
+            The answer is only the beginning.
+          </h2>
+          <p>
+            Follow the evidence, inspect disagreements, and see what each model
+            call contributed.
+          </p>
+        </div>
+        <div className="build-pillars">
+          <div>
+            <ScanLine size={20} />
+            <h3>Inspect the evidence</h3>
+            <p>
+              Explore accepted and rejected sources, their quality labels, and
+              the claims they support. Check the sources before relying on a
+              result.
+            </p>
           </div>
-
-          <div className="promise">
-            <div className="promise-figure" style={{ alignItems: "center" }}>
-              <div className="row gap8 wrap">
-                <span className="cite" style={{ background: "var(--pro-dim)", color: "var(--pro-ink)" }}>
-                  S1 · primary
-                </span>
-                <span className="cite" style={{ background: "var(--pro-dim)", color: "var(--pro-ink)" }}>
-                  S4 · expert
-                </span>
-                <span className="cite cite-strike">S7 · vendor blog</span>
-              </div>
-            </div>
-            <h3>Every claim links to a source</h3>
-            <p>Sources are graded primary, expert or context. The ones that were rejected stay visible, crossed out.</p>
+          <div>
+            <GitBranch size={20} />
+            <h3>Follow the reasoning</h3>
+            <p>
+              Read the debate, track changing positions, or compare advice by
+              lens. Uncertainty and disagreement belong in the result.
+            </p>
           </div>
-
-          <div className="promise">
-            <div className="promise-figure" style={{ alignItems: "center" }}>
-              <div className="stack-av">
-                <span className="av pro">P1</span>
-                <span className="av pro">P2</span>
-                <span className="av con">C1</span>
-                <span className="av con">C2</span>
-                <span className="av judge">J</span>
-              </div>
-            </div>
-            <h3>Every step names its model</h3>
-            <p>Latency, tokens and cost for each call, on every run. When a model fails, the gap is reported, never filled in.</p>
+          <div>
+            <Braces size={20} />
+            <h3>Look under the hood</h3>
+            <p>
+              Per-call models, latency, tokens and cost make the work
+              inspectable. A framework-neutral TypeScript engine powers all
+              three modes.
+            </p>
+            <Link href="/telemetry">
+              Explore telemetry <ArrowUpRight size={13} />
+            </Link>
           </div>
         </div>
+        <details className="architecture-note">
+          <summary>
+            How Polyvise is built <span>Product + engineering</span>
+          </summary>
+          <div>
+            <p>
+              <strong>polyvise-ai</strong> owns the Next.js interface, API
+              routes, live event delivery and persistence.{" "}
+              <strong>polyvise-core</strong> owns the typed contracts,
+              deliberation workflows and model and evidence providers. The
+              boundary lets the engine serve multiple applications.
+            </p>
+            <p>
+              Structured outputs are validated with Zod. Runs preserve traces
+              and artifacts so a result can be inspected beyond its final
+              paragraph. Consensus agreement is computed from agent stances
+              rather than self-reported by a model.
+            </p>
+            <div className="row gap24 wrap">
+              <a
+                href="https://github.com/polyvise/polyvise-ai"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Application repository ↗
+              </a>
+              <a
+                href="https://github.com/polyvise/polyvise-core"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Core repository ↗
+              </a>
+            </div>
+          </div>
+        </details>
       </section>
     </div>
   );

@@ -4,6 +4,8 @@ import Link from "next/link";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { RunQualityNote } from "@/components/run-quality-note";
+import { RunDownload } from "@/components/run-download";
 import { ArgumentMap } from "@/components/argument-map";
 import {
   formatCost,
@@ -130,6 +132,10 @@ export function RunSurface({ record }: { record: DebateRecord }) {
         totalCost={totalCost}
       />
 
+      {state.status === "complete" && tab !== "verdict" ? (
+        <div className="verdict-ready" role="status"><div><strong>Your verdict is ready.</strong><span>See the recommendation, the tradeoffs and what would change the result.</span></div><button type="button" className="btn btn-primary btn-sm" onClick={() => setTab("verdict")}>Read the verdict →</button></div>
+      ) : null}
+
       <div className="tabs" role="tablist">
         <Tab id="verdict" current={tab} onSelect={setTab} label="Verdict" />
         <Tab id="floor" current={tab} onSelect={setTab} label="Debate floor" count={state.turns.length} />
@@ -196,6 +202,7 @@ function RunHeader({
 
       <h1 className="display d2 run-res">{state.resolution ?? state.subject}</h1>
 
+      <RunQualityNote record={record} />
       {state.highStakes ? (
         <Callout
           tone="note"
@@ -205,6 +212,7 @@ function RunHeader({
         />
       ) : null}
 
+      <div className="row gap10 wrap mt14"><RunDownload record={record} /></div>
       <Stepper status={state.status} />
     </div>
   );

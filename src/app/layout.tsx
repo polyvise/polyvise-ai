@@ -28,7 +28,7 @@ const mono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: "Polyvise",
-  description: "Ask a hard question. Several AI models argue it out and a neutral judge gives you the verdict, with every claim linked to its source.",
+  description: "Think beyond the first answer. Explore decisions with AI debate, consensus and advisory panels, with inspectable reasoning and evidence.",
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000")
 };
 

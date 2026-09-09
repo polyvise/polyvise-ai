@@ -1,3 +1,5 @@
+import { RunQualityNote } from "@/components/run-quality-note";
+import { RunDownload } from "@/components/run-download";
 import type { EvidenceSource } from "@polyvise/core/debate/types";
 import type {
   AdvisoryPanelRunEnvelope,
@@ -16,8 +18,10 @@ function RunHead({ record, mode, tone }: { record: PolyviseRecord; mode: string;
       <div className="row gap8 wrap">
         <span className={`chip ${tone}`}>{mode}</span>
         <span className="meta">{record.id}</span>
+        <span className="push"><RunDownload record={record} /></span>
       </div>
-      <h2 className="display d2 mt10">{record.resolution || record.subject}</h2>
+      <h1 className="display d2 mt10">{record.subject}</h1>
+      <RunQualityNote record={record} />
       {record.highStakes ? (
         <div className="callout alert mt14">
           <strong>{record.highStakes.category} topic</strong>
@@ -105,6 +109,7 @@ export function ConsensusSurface({ record, run }: { record: PolyviseRecord; run:
               ))}
             </div>
             <p className="small mt14">{convergence.range}</p>
+            <p className="meta mt10">Agreement measures how close the agents’ stances are. It is not a probability that their answer is correct.</p>
           </div>
         </div>
 
