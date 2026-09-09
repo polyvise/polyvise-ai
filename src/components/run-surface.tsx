@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { ResultPerspectives } from "@/components/result-perspectives";
 import { RunQualityNote } from "@/components/run-quality-note";
 import { RunDownload } from "@/components/run-download";
 import { ArgumentMap } from "@/components/argument-map";
@@ -482,6 +483,7 @@ function VerdictTab({ state, record }: { state: RunViewState; record: DebateReco
 
   return (
     <div>
+      <ResultPerspectives items={state.fallbacks.scouts ? [] : state.scouts.map(scout => ({ title: `${scout.lens} · ${scout.side}`, body: scout.thesis }))} />
       <div className="verdict">
         <div className="verdict-body">
           <div className="verdict-top">
@@ -605,7 +607,7 @@ function ListCard({
   tone?: "pro" | "con";
 }) {
   return (
-    <div className="card">
+    <div className={`card${tone ? ` canvas-${tone}` : ""}`}>
       <div className="card-head">
         {tone ? (
           <span className={`chip ${tone}`}>

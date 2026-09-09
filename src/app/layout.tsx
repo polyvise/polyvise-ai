@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Instrument_Sans, Instrument_Serif, JetBrains_Mono } from "next/font/google";
 import "@xyflow/react/dist/style.css";
 import "./globals.css";
+import "./perspective-canvas.css";
 import { AppShell } from "@/components/app-shell";
 
 const display = Instrument_Serif({
@@ -14,7 +15,7 @@ const display = Instrument_Serif({
 
 const ui = Instrument_Sans({
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  weight: ["400", "500", "600", "700"],
   variable: "--ui",
   display: "swap"
 });

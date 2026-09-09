@@ -19,7 +19,7 @@ type NavItem = {
  * the engine's own surfaces (telemetry, the design system) live in the footer.
  */
 const nav: NavItem[] = [
-  { href: "/" as Route, label: "Ask", match: [] },
+  { href: "/" as Route, label: "Workspace", match: [] },
   { href: "/runs" as Route, label: "Your runs", match: ["/runs"] },
   { href: "/modes" as Route, label: "Mode guide", match: ["/modes", "/debate", "/consensus", "/panel"] },
   { href: "/lab" as Route, label: "Model lab", match: ["/lab"] }
