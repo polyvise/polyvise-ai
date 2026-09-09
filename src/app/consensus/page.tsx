@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 const stages = [
   {
     eyebrow: "Round 1 — Blind",
-    title: "Seven independent answers",
+    title: "Three to seven independent perspectives",
     body: "No agent sees another. Positions and confidence are recorded before any influence."
   },
   {
@@ -126,16 +126,16 @@ export default function ConsensusPage() {
           <path d="M8 7.4v3.4M8 5.2v.6" strokeLinecap="round" />
         </svg>
         <div>
-          <h5>Why this reuses the debate shell</h5>
+          <h5>Agreement is a finding, not a guarantee</h5>
           <p>
-            The run header, stepper, inspector rail, evidence ledger and telemetry are all mode-agnostic. A new mode
-            supplies a stage sequence, a stream renderer and a result renderer, and inherits the rest.
+            All selected rounds run, even if the agents agree early. Agreement is calculated from their stance spread.
+            Agents share a reasoning model, so convergence should not be treated as independent verification.
           </p>
         </div>
       </div>
 
       <div className="hero-cta">
-        <Link href={"/" as Route} className="btn btn-primary btn-lg">
+        <Link href={"/?mode=consensus#ask" as Route} className="btn btn-primary btn-lg">
           Ask a question
         </Link>
         <Link href={"/runs" as Route} className="btn">

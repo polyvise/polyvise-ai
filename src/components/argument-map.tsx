@@ -47,7 +47,6 @@ export function ArgumentMap({ nodes, edges }: ArgumentMapProps) {
         fitViewOptions={{ padding: 0.2 }}
         minZoom={0.35}
         maxZoom={1.6}
-        proOptions={{ hideAttribution: true }}
       >
         <Background color="var(--dot)" gap={18} />
         <MiniMap pannable zoomable nodeStrokeWidth={3} maskColor="var(--hover-3)" />

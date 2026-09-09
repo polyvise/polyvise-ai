@@ -87,7 +87,7 @@ export default function PanelPage() {
       </div>
 
       <div className="hero-cta">
-        <Link href={"/" as Route} className="btn btn-primary btn-lg">
+        <Link href={"/?mode=advisory_panel#ask" as Route} className="btn btn-primary btn-lg">
           Ask a question
         </Link>
         <Link href={"/runs" as Route} className="btn">

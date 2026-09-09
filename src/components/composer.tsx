@@ -1,412 +1,474 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Route } from "next";
-import { FormEvent, useState } from "react";
+import { FormEvent, useRef, useState } from "react";
+import {
+  ArrowRight,
+  Check,
+  ChevronDown,
+  CircleHelp,
+  SlidersHorizontal,
+  Plus,
+  X,
+} from "lucide-react";
 import { rememberLocalRun } from "@/lib/local-runs";
-import { defaultSelections, modelCatalog, slots, type SlotId } from "@/lib/model-catalog";
-import type { CouncilSize, DebateMode, DebateRecord } from "@polyvise/core/debate/types";
-import { modeLabels } from "@/lib/run-record";
+import { defaultSelections, modelCatalog } from "@/lib/model-catalog";
+import type { CouncilSize, DebateMode } from "@polyvise/core/debate/types";
+import {
+  buildRunRequest,
+  modeGuide,
+  modeOrder,
+  modelSlotsForMode,
+} from "@/lib/mode-guide";
+import { ModeDiagram } from "./mode-diagram";
 
-type ModelSelections = Record<SlotId, string>;
-
-const examples = [
-  "Should cities ban private cars downtown?",
-  "Is nuclear power a good climate strategy?",
-  "Remote job or higher-paying hybrid offer?",
-  "Should schools allow phones during the day?"
-];
-
-const slotTone: Record<SlotId, "pro" | "con" | "judge" | "neutral"> = {
-  yes: "pro",
-  no: "con",
-  deep: "neutral",
-  judge: "judge",
-  quick: "neutral"
-};
-
-const slotLabel: Record<SlotId, string> = {
-  yes: "For",
-  no: "Against",
-  deep: "Both sides",
-  judge: "Neutral",
-  quick: "Setup"
-};
-
-/**
- * One card per way of deliberating, each with a diagram of who is in the
- * room. The names are the ones a newcomer can parse; the engine's own
- * labels stay in modeLabels for the run record.
- */
-const modeOptions: { id: DebateMode; title: string; body: string; dots: React.ReactNode; start: string }[] = [
-  {
-    id: "hybrid_council",
-    title: "Debate",
-    body: "Two argue for, two against, a judge scores it. Best for yes-or-no decisions.",
-    start: "Start the debate",
-    dots: (
-      <>
-        <span className="d pro" />
-        <span className="d pro" />
-        <span className="vs">vs</span>
-        <span className="d con" />
-        <span className="d con" />
-        <span className="bar" />
-        <span className="d judge" />
-      </>
-    )
-  },
-  {
-    id: "consensus",
-    title: "Consensus",
-    body: "Several models answer alone, then revise until they settle. Best for estimates.",
-    start: "Start the consensus run",
-    dots: (
-      <>
-        <span className="d grey" />
-        <span className="d grey" style={{ opacity: 0.8 }} />
-        <span className="d grey" style={{ opacity: 0.6 }} />
-        <span className="d grey" style={{ opacity: 0.45 }} />
-        <span className="d grey" style={{ opacity: 0.3 }} />
-        <svg width="16" height="12" viewBox="0 0 16 12" fill="none" className="s-muted" strokeWidth={1.5} strokeLinecap="round" aria-hidden="true">
-          <path d="M1 6h13M10 2l4 4-4 4" />
-        </svg>
-        <span className="d pro" />
-      </>
-    )
-  },
-  {
-    id: "advisory_panel",
-    title: "Advisory panel",
-    body: "An economist, an ethicist, an operator and a skeptic each advise. Best for strategy.",
-    start: "Convene the panel",
-    dots: (
-      <>
-        <span className="d lens1" />
-        <span className="d lens2" />
-        <span className="d lens3" />
-        <span className="d lens4" />
-        <span className="bar" />
-        <span className="d judge" />
-      </>
-    )
-  }
-];
-
-export function Composer() {
+export function Composer({
+  initialMode = "hybrid_council",
+}: {
+  initialMode?: DebateMode;
+}) {
   const router = useRouter();
   const [subject, setSubject] = useState("");
   const [context, setContext] = useState("");
-  const [mode, setMode] = useState<DebateMode>("hybrid_council");
+  const [mode, setMode] = useState(initialMode);
   const [councilSize, setCouncilSize] = useState<CouncilSize>("quartet");
-  const [agentCountChoice, setAgentCountChoice] = useState(5);
-  const [models, setModels] = useState<ModelSelections>(defaultSelections);
-  // The con side mirrors the pro side until it is changed on its own, so
-  // picking one model for "the debaters" is a single choice.
-  const [conFollowsPro, setConFollowsPro] = useState(true);
+  const [agentCount, setAgentCount] = useState(5);
+  const [rounds, setRounds] = useState(3);
+  const [models, setModels] = useState(defaultSelections);
+  const [showContext, setShowContext] = useState(false);
   const [showRouting, setShowRouting] = useState(false);
-
-  function chooseModel(slot: SlotId, model: string) {
-    if (slot === "yes") {
-      setModels((current) => ({ ...current, yes: model, ...(conFollowsPro ? { no: model } : {}) }));
-      return;
-    }
-    if (slot === "no") {
-      setConFollowsPro(false);
-    }
-    setModels((current) => ({ ...current, [slot]: model }));
-  }
-
-  function matchConToPro() {
-    setConFollowsPro(true);
-    setModels((current) => ({ ...current, no: current.yes }));
-  }
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  /**
-   * What the selected mode will actually run, in plain words.
-   *
-   * For the council, the size names count debaters while the roster includes
-   * the neutral judge — so duo is three agents and quartet is five. The other
-   * modes have no judge, so they say what they do have.
-   */
-  const facts =
-    mode === "consensus"
-      ? ["Cited evidence", `${agentCountChoice} agents`, "3 rounds", "no judge"]
-      : mode === "advisory_panel"
-        ? ["Cited evidence", "4 lenses", "a chair writes it up"]
-        : ["Cited evidence", "6 rounds", councilSize === "duo" ? "1 vs 1 with a judge" : "2 vs 2 with a judge"];
-
-  const selected = modeOptions.find((option) => option.id === mode) ?? modeOptions[0];
-  const ready = subject.trim().length >= 4 && !isSubmitting;
+  const submitting = useRef(false);
+  const subjectRef = useRef<HTMLTextAreaElement>(null);
+  const guide = modeGuide[mode];
+  const ready =
+    subject.trim().length >= 4 &&
+    subject.length <= 600 &&
+    context.length <= 1600 &&
+    !isSubmitting;
+  const customModels = modelSlotsForMode(mode, councilSize).some(
+    ({ id }) => models[id] !== defaultSelections[id],
+  );
+  const settingsSummary =
+    mode === "hybrid_council"
+      ? `${councilSize === "duo" ? "1 vs 1" : "2 vs 2"} + judge · 6 rounds`
+      : mode === "consensus"
+        ? `${agentCount} perspectives · ${rounds} rounds`
+        : "4 advisors + chair";
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!ready) return;
-
+    if (!ready || submitting.current) return;
+    submitting.current = true;
     setIsSubmitting(true);
     setError(null);
-
     try {
       const response = await fetch("/api/debates", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          subject,
-          context: context.trim() || undefined,
-          mode,
-          ...(mode === "consensus" ? { consensus: { agentCount: agentCountChoice, rounds: 3 } } : {}),
-          evidence: "cited",
-          councilSize,
-          models
-        })
+        body: JSON.stringify(
+          buildRunRequest({
+            subject,
+            context,
+            mode,
+            councilSize,
+            agentCount,
+            rounds,
+            models,
+          }),
+        ),
       });
-
-      const payload = (await response.json()) as { debate?: DebateRecord; error?: string };
-      if (!response.ok || !payload.debate) {
-        throw new Error(payload.error ?? "Unable to start the run.");
+      const payload = (await response.json()) as {
+        debate?: { id: string };
+        error?: string;
+        issues?: { message: string }[];
+      };
+      if (!response.ok || !payload.debate?.id) {
+        throw new Error(
+          response.status === 429
+            ? "You’ve started several runs recently. Wait a minute, then try again. Your question is still here."
+            : (payload.issues?.[0]?.message ??
+              payload.error ??
+              "Unable to start the run. Please try again."),
+        );
       }
-
       rememberLocalRun(payload.debate.id);
       router.push(`/runs/${payload.debate.id}` as Route);
-    } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : "Unable to start the run.");
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Unable to start the run. Please try again.",
+      );
+      submitting.current = false;
       setIsSubmitting(false);
     }
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <div className="composer">
-        <div className="composer-top">
-          <label className="q-field-label" htmlFor="subject">
-            <svg
-              width="13"
-              height="13"
-              viewBox="0 0 16 16"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={1.5}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M10.5 2.5a1.5 1.5 0 0 1 2 2L4.5 12.5l-3 .8.8-3z" />
-            </svg>
-            Type your question
-          </label>
-          <div className="q-field">
+    <div className="decision-workspace" id="ask">
+      <form
+        className="question-workbench"
+        onSubmit={handleSubmit}
+        aria-label="Create a run"
+        aria-busy={isSubmitting}
+      >
+        <fieldset disabled={isSubmitting} className="workbench-fields">
+          <div className="workbench-section">
+            <div className="step-heading">
+              <span className="step-number">01</span>
+              <h2>What would you like to figure out?</h2>
+              <span className="optional-note">Start with a question</span>
+            </div>
+            <label htmlFor="subject" className="sr-only">
+              Your question
+            </label>
             <textarea
+              ref={subjectRef}
               id="subject"
-              className="q-input"
+              className="decision-input"
               rows={2}
+              maxLength={600}
+              required
+              minLength={4}
               value={subject}
               onChange={(event) => setSubject(event.target.value)}
-              placeholder="Should a 40-person company move customer support to AI-first this year?"
+              placeholder={guide.placeholder}
+              aria-describedby="question-hint"
             />
-          </div>
-        </div>
-
-        <div className="composer-mid">
-          <div className="mode-pick" role="radiogroup" aria-label="How the models deliberate">
-            {modeOptions.map((option) => {
-              const on = option.id === mode;
-              return (
-                <button
-                  type="button"
-                  key={option.id}
-                  role="radio"
-                  aria-checked={on}
-                  className={`mode-opt${on ? " on" : ""}`}
-                  onClick={() => setMode(option.id)}
-                >
-                  <span className="dots" aria-hidden="true">
-                    {option.dots}
-                  </span>
-                  <h4>{option.title}</h4>
-                  <p>{option.body}</p>
-                </button>
-              );
-            })}
-          </div>
-
-          {mode === "hybrid_council" ? (
-            <div className="row gap10 wrap mt14">
-              <span className="small">Council size</span>
-              <div className="seg" role="radiogroup" aria-label="Council size">
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={councilSize === "duo"}
-                  className={councilSize === "duo" ? "on" : undefined}
-                  onClick={() => setCouncilSize("duo")}
-                >
-                  Duo · 1 vs 1
-                </button>
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={councilSize === "quartet"}
-                  className={councilSize === "quartet" ? "on" : undefined}
-                  onClick={() => setCouncilSize("quartet")}
-                >
-                  Quartet · 2 vs 2
-                </button>
-              </div>
+            <div className="question-tools">
+              <button
+                type="button"
+                className="text-action"
+                onClick={() => setShowContext(!showContext)}
+                aria-expanded={showContext}
+                aria-controls="question-context"
+              >
+                {showContext ? <X size={14} /> : <Plus size={14} />}{" "}
+                {showContext
+                  ? "Hide context"
+                  : context
+                    ? "Edit context"
+                    : "Add context"}
+                <span className="optional-note">optional</span>
+              </button>
+              <span id="question-hint" className="input-count">
+                {subject.length > 0 && subject.trim().length < 4
+                  ? "At least 4 characters · "
+                  : ""}
+                {subject.length}/600
+              </span>
             </div>
-          ) : null}
+            {showContext && (
+              <div id="question-context" className="context-well">
+                <label htmlFor="context">What should the models know?</label>
+                <p>
+                  Include your constraints, audience, time horizon or what
+                  success looks like.
+                </p>
+                <textarea
+                  id="context"
+                  rows={3}
+                  maxLength={1600}
+                  value={context}
+                  onChange={(event) => setContext(event.target.value)}
+                  placeholder="For example: We’re a team of 12, with a six-month runway and customers in three time zones."
+                />
+                <span className="input-count">{context.length}/1600</span>
+              </div>
+            )}
+            <div className="question-examples">
+              <span>Try a question</span>
+              {guide.examples.map((example) => (
+                <button
+                  type="button"
+                  key={example}
+                  onClick={() => {
+                    setSubject(example);
+                    subjectRef.current?.focus();
+                  }}
+                >
+                  {example}
+                  <ArrowRight size={13} />
+                </button>
+              ))}
+            </div>
+          </div>
 
-          {mode === "consensus" ? (
-            <div className="row gap10 wrap mt14">
-              <span className="small">How many models</span>
-              <div className="seg" role="radiogroup" aria-label="Number of agents">
-                {[3, 5, 7].map((count) => (
+          <div className="workbench-section mode-section">
+            <div className="step-heading">
+              <span className="step-number">02</span>
+              <h2>Choose how to think it through</h2>
+            </div>
+            <fieldset className="goal-picker">
+              <legend className="sr-only">How the models deliberate</legend>
+              {modeOrder.map((id) => (
+                <label
+                  key={id}
+                  className={`goal-option ${mode === id ? "selected" : ""}`}
+                >
+                  <input
+                    type="radio"
+                    name="mode"
+                    value={id}
+                    checked={mode === id}
+                    onChange={() => {
+                      setMode(id);
+                      setError(null);
+                    }}
+                  />
+                  <span className={`goal-symbol ${id}`} aria-hidden="true">
+                    {id === "hybrid_council"
+                      ? "⇄"
+                      : id === "consensus"
+                        ? "≋"
+                        : "✳"}
+                  </span>
+                  <span className="goal-name">{modeGuide[id].goal}</span>
+                  <span className="goal-mode">{modeGuide[id].name}</span>
+                  <span className="goal-question">{modeGuide[id].prompt}</span>
+                  <span className="goal-check" aria-hidden="true">
+                    <Check size={11} />
+                  </span>
+                </label>
+              ))}
+            </fieldset>
+            <p className="mode-description" aria-live="polite">
+              {guide.description}
+            </p>
+            <div className="mode-configuration">
+              {mode === "hybrid_council" && (
+                <fieldset className="inline-choice">
+                  <legend>
+                    Debaters <span>+ a neutral judge</span>
+                  </legend>
+                  <div className="choice-options">
+                    {(["duo", "quartet"] as const).map((size) => (
+                      <label
+                        key={size}
+                        className={councilSize === size ? "selected" : ""}
+                      >
+                        <input
+                          type="radio"
+                          name="size"
+                          value={size}
+                          checked={councilSize === size}
+                          onChange={() => setCouncilSize(size)}
+                        />
+                        {size === "duo"
+                          ? "1 vs 1 · focused"
+                          : "2 vs 2 · more perspectives"}
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+              )}
+              {mode === "consensus" && (
+                <div className="consensus-settings">
+                  <fieldset className="inline-choice">
+                    <legend>Perspectives</legend>
+                    <div className="choice-options">
+                      {[3, 5, 7].map((count) => (
+                        <label
+                          key={count}
+                          className={agentCount === count ? "selected" : ""}
+                        >
+                          <input
+                            type="radio"
+                            name="agents"
+                            checked={agentCount === count}
+                            onChange={() => setAgentCount(count)}
+                          />
+                          {count}
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+                  <label className="rounds-choice">
+                    Rounds
+                    <select
+                      value={rounds}
+                      onChange={(event) =>
+                        setRounds(Number(event.target.value))
+                      }
+                    >
+                      {[2, 3, 4, 5].map((count) => (
+                        <option key={count} value={count}>
+                          {count}
+                          {count === 3 ? " · default" : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <p>
+                    More perspectives and rounds mean more model calls. All
+                    perspectives use the selected reasoning model.
+                  </p>
+                </div>
+              )}
+              {mode === "advisory_panel" && (
+                <div className="lens-roster">
+                  {["Economist", "Ethicist", "Operator", "Skeptic"].map(
+                    (lens, index) => (
+                      <span key={lens}>
+                        <i style={{ background: `var(--lens-${index + 1})` }} />
+                        {lens}
+                      </span>
+                    ),
+                  )}
+                  <p>
+                    Four distinct lenses. One model for the advisors; a separate
+                    model choice for the chair.
+                  </p>
+                </div>
+              )}
+            </div>
+            <button
+              className="routing-toggle"
+              type="button"
+              aria-expanded={showRouting}
+              aria-controls="model-settings"
+              onClick={() => setShowRouting(!showRouting)}
+            >
+              <SlidersHorizontal size={15} />
+              Model settings
+              <span>{customModels ? "Customized" : "Defaults selected"}</span>
+              <ChevronDown size={14} className={showRouting ? "rotated" : ""} />
+            </button>
+            {showRouting && (
+              <div id="model-settings" className="routing-settings">
+                <div className="row gap10 wrap">
+                  <p>
+                    Choose models by role. Multiple perspectives can use the
+                    same model.
+                  </p>
                   <button
-                    key={count}
                     type="button"
-                    role="radio"
-                    aria-checked={agentCountChoice === count}
-                    className={agentCountChoice === count ? "on" : undefined}
-                    onClick={() => setAgentCountChoice(count)}
+                    className="text-action"
+                    onClick={() => setModels({ ...defaultSelections })}
                   >
-                    {count}
+                    Reset defaults
                   </button>
+                </div>
+                {modelSlotsForMode(mode, councilSize).map((slot) => (
+                  <div className="routing-row" key={slot.id}>
+                    <label htmlFor={`model-${slot.id}`}>
+                      {slot.title}
+                      <span>{slot.description}</span>
+                    </label>
+                    <select
+                      id={`model-${slot.id}`}
+                      value={models[slot.id]}
+                      onChange={(event) =>
+                        setModels((current) => ({
+                          ...current,
+                          [slot.id]: event.target.value,
+                        }))
+                      }
+                    >
+                      {modelCatalog.map((option) => (
+                        <option key={option.id} value={option.id}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 ))}
               </div>
-            </div>
-          ) : null}
-        </div>
-
-        <div className="composer-bar">
-          <div className="composer-facts">
-            {facts.map((fact, index) => (
-              <span className="row gap10" key={fact}>
-                {index > 0 ? <span className="sep" /> : null}
-                {fact}
-              </span>
-            ))}
+            )}
           </div>
-          <div className="composer-actions">
+          <div className="workbench-submit">
+            <div>
+              <span className="submit-mode">{guide.name}</span>
+              <span className="submit-summary">{settingsSummary}</span>
+            </div>
             <button
-              type="button"
-              className="btn btn-ghost btn-sm"
-              onClick={() => setShowRouting((open) => !open)}
-              aria-expanded={showRouting}
+              type="submit"
+              className="btn btn-primary btn-lg"
+              disabled={!ready}
             >
-              {showRouting ? "Hide model choices" : "Choose models"}
-            </button>
-            <button type="submit" className="btn btn-primary btn-lg" disabled={!ready}>
-              {isSubmitting ? <span className="spin sm" /> : null}
-              {isSubmitting ? "Starting…" : selected.start}
-              {isSubmitting ? null : (
-                <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M3 10h13M11 5l5 5-5 5" />
-                </svg>
+              {isSubmitting ? (
+                <>
+                  <span className="spin sm" />
+                  Starting your run…
+                </>
+              ) : (
+                <>
+                  {guide.start}
+                  <ArrowRight size={17} />
+                </>
               )}
             </button>
           </div>
-        </div>
-
-        {showRouting ? (
-          <div className="slot-grid">
-            <div className="grid g3">
-              {slots.map((slot) => (
-                <div className="slot" key={slot.id}>
-                  <div className="slot-h">
-                    <span className={`chip ${slotTone[slot.id]}`}>
-                      <span className="dot" />
-                      {slotLabel[slot.id]}
-                    </span>
-                    <span className="lbl">{slot.title}</span>
-                    {slot.id === "no" ? (
-                      conFollowsPro ? (
-                        <span className="meta push">same as pro</span>
-                      ) : (
-                        <button type="button" className="link push" style={{ fontSize: 13 }} onClick={matchConToPro}>
-                          Match pro
-                        </button>
-                      )
-                    ) : null}
-                  </div>
-                  <select
-                    className="select"
-                    value={models[slot.id]}
-                    onChange={(event) => chooseModel(slot.id, event.target.value)}
-                    aria-label={slot.title}
-                  >
-                    {modelCatalog.map((option) => (
-                      <option key={option.id} value={option.id}>
-                        {option.id}
-                      </option>
-                    ))}
-                  </select>
-                  <p>{slot.description}</p>
-                </div>
-              ))}
-            </div>
-            <p className="meta mt14">
-              Each seat can run a different model. The telemetry tab on every run shows what each seat cost and how
-              long it took.
-            </p>
-
-            <div className="mt18" style={{ paddingTop: 18, borderTop: "1px solid var(--line)" }}>
-              <label htmlFor="context" className="lbl">
-                Context
-              </label>
-              <p className="meta mt6">
-                Constraints, audience, time horizon, or what you already believe. Passed to the framing step.
-              </p>
-              <textarea
-                id="context"
-                className="ctx-input mt10"
-                value={context}
-                onChange={(event) => setContext(event.target.value)}
-                placeholder="Optional. Anything the models should treat as given."
-              />
-            </div>
-          </div>
-        ) : null}
-      </div>
-
-      {error ? (
-        <div className="callout alert mt18" style={{ maxWidth: 920, margin: "18px auto 0" }}>
-          <svg
-            className="ci"
-            width="16"
-            height="16"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={1.4}
-            style={{ color: "var(--alert)" }}
-            aria-hidden="true"
-          >
-            <path d="M8 2.4L14.6 13.6H1.4z" strokeLinejoin="round" />
-            <path d="M8 6.6v3M8 11.4v.5" strokeLinecap="round" />
-          </svg>
-          <div>
-            <h5>The run didn&apos;t start</h5>
+        </fieldset>
+        {error && (
+          <div className="composer-error" role="alert">
+            <strong>Your run didn’t start.</strong>
             <p>{error}</p>
           </div>
+        )}
+        <div className="run-expectations">
+          <span className="status-dot" />
+          <p>
+            {isSubmitting
+              ? "Preparing your workspace. You’ll be taken to the run when it’s ready."
+              : "Watch the reasoning unfold live. Runs can take several minutes; timing and cost depend on your models and settings."}
+          </p>
         </div>
-      ) : null}
+      </form>
 
-      <div className="example-row">
-        <span className="meta" style={{ alignSelf: "center", marginRight: 4 }}>
-          Or try
-        </span>
-        {examples.map((example) => (
-          <button key={example} type="button" className="example" onClick={() => setSubject(example)}>
-            {example}
-          </button>
-        ))}
-      </div>
-
-      <p className="meta mt18" style={{ textAlign: "center", maxWidth: 620, margin: "18px auto 0" }}>
-        Medical, legal, financial and safety questions run as normal. The framing step notes the stakes and the verdict
-        carries a disclaimer.
-      </p>
-    </form>
+      <aside className="run-preview" aria-label="What to expect">
+        <div className="preview-caption">
+          <span className="eyebrow">Your thinking room</span>
+          <span className="preview-live-dot" /> <span>Preview</span>
+        </div>
+        <ModeDiagram
+          mode={mode}
+          councilSize={councilSize}
+          agentCount={agentCount}
+        />
+        <div className="preview-copy" aria-live="polite">
+          <span className="eyebrow">What you’ll get</span>
+          <h2 className="display">{guide.outcome}</h2>
+          <ul className="output-checklist">
+            {guide.outputs.map((output) => (
+              <li key={output}>
+                <Check size={14} />
+                {output}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="preview-process">
+          <h3>The path to your answer</h3>
+          <ol>
+            {guide.steps.map((step, i) => (
+              <li key={step}>
+                <span>{i + 1}</span>
+                {step}
+              </li>
+            ))}
+          </ol>
+        </div>
+        <details className="mode-rules">
+          <summary>
+            <CircleHelp size={15} />
+            Good to know
+            <ChevronDown size={14} />
+          </summary>
+          <p>{guide.rule}</p>
+          <Link className="text-action" href={guide.href as Route}>
+            Explore this mode
+            <ArrowRight size={13} />
+          </Link>
+        </details>
+        <a href="#example" className="preview-example-link">
+          See an example first <ArrowRight size={15} />
+        </a>
+      </aside>
+    </div>
   );
 }

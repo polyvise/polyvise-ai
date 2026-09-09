@@ -18,11 +18,11 @@ const roundDetail: Record<string, string> = {
 };
 
 const roster = [
-  { tone: "pro" as const, initials: "P1", name: "Opening case", meta: "quick slot" },
-  { tone: "pro" as const, initials: "P2", name: "Implementation rebuttal", meta: "quick slot" },
-  { tone: "con" as const, initials: "C1", name: "Risk case", meta: "deep slot" },
-  { tone: "con" as const, initials: "C2", name: "Stakeholder rebuttal", meta: "deep slot" },
-  { tone: "judge" as const, initials: "J", name: "Neutral judge", meta: "judge slot" }
+  { tone: "pro" as const, initials: "P1", name: "Opening case", meta: "model varies by round" },
+  { tone: "pro" as const, initials: "P2", name: "Implementation rebuttal", meta: "model varies by round" },
+  { tone: "con" as const, initials: "C1", name: "Risk case", meta: "model varies by round" },
+  { tone: "con" as const, initials: "C2", name: "Stakeholder rebuttal", meta: "model varies by round" },
+  { tone: "judge" as const, initials: "J", name: "Neutral judge", meta: "judge model" }
 ];
 
 export default function DebateModePage() {
@@ -43,7 +43,7 @@ export default function DebateModePage() {
       </p>
 
       <div className="hero-cta">
-        <Link href={"/" as Route} className="btn btn-primary btn-lg">
+        <Link href={"/?mode=hybrid_council#ask" as Route} className="btn btn-primary btn-lg">
           Ask a question
         </Link>
         <Link href={"/runs" as Route} className="btn">
@@ -104,8 +104,8 @@ export default function DebateModePage() {
             before starting a run.
           </p>
           <p className="small mt14">
-            Model routing is per slot, so the pro side, the con side and the judge can each run a different model — and
-            the telemetry tab shows what each one cost.
+            In duo, the pro side, con side and judge each have a model choice. In quartet, model choices are per round type.
+            The telemetry tab shows what each call cost.
           </p>
         </div>
       </div>

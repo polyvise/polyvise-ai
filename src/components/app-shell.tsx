@@ -21,8 +21,8 @@ type NavItem = {
 const nav: NavItem[] = [
   { href: "/" as Route, label: "Ask", match: [] },
   { href: "/runs" as Route, label: "Your runs", match: ["/runs"] },
-  { href: "/modes" as Route, label: "Modes", match: ["/modes", "/debate", "/consensus", "/panel"] },
-  { href: "/lab" as Route, label: "Models", match: ["/lab"] }
+  { href: "/modes" as Route, label: "Mode guide", match: ["/modes", "/debate", "/consensus", "/panel"] },
+  { href: "/lab" as Route, label: "Model lab", match: ["/lab"] }
 ];
 
 function isActive(item: NavItem, pathname: string): boolean {
@@ -46,8 +46,9 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="app">
+      <a href="#main-content" className="skip-link">Skip to content</a>
       <header className="topbar">
-        <Link href={"/" as Route} className="brand">
+        <Link href={"/" as Route} className="brand" aria-label="Polyvise home">
           <BrandMark />
           <span className="brand-name">Polyvise</span>
         </Link>
@@ -73,7 +74,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           {onHome ? (
             <Link href={"/lab" as Route} className="status-pill">
               <span className="status-dot" />
-              {MODEL_COUNT} models ready
+              {MODEL_COUNT} models in catalog
             </Link>
           ) : (
             <Link href={"/" as Route} className="btn btn-ink">
@@ -83,7 +84,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <div className="main">{children}</div>
+      <main id="main-content" className="main">{children}</main>
 
       <footer className="site-foot">
         <span className="row gap8">
@@ -92,7 +93,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </span>
         <Link href={"/telemetry" as Route}>Telemetry</Link>
         <Link href={"/system" as Route}>Design system</Link>
-        <span className="push">Every claim links to a source. Every step names its model.</span>
+        <span className="push">More perspectives. Clearer decisions.</span>
       </footer>
     </div>
   );

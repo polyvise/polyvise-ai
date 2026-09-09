@@ -1,3 +1,4 @@
+import { PendingModeRun } from "@/components/pending-mode-run";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { RunSurface } from "@/components/run-surface";
@@ -28,9 +29,10 @@ export default async function RunPage({ params }: PageProps) {
     notFound();
   }
 
-  // Dispatch on what the run actually produced. A record whose run has not
-  // finished yet has nothing to narrow on, so it falls through to the debate
-  // surface, which is the one that renders an in-flight run.
+  // Preserve each mode’s identity while waiting for its result envelope.
+  if (!debate.latestRun && debate.mode !== "hybrid_council") {
+    return <PendingModeRun record={debate} />;
+  }
   const consensus = debate.latestRun ? asConsensusRun(debate.latestRun) : null;
   if (consensus) {
     return <ConsensusSurface record={debate} run={consensus} />;
