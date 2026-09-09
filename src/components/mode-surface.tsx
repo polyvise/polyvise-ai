@@ -1,3 +1,4 @@
+import { ResultPerspectives } from "@/components/result-perspectives";
 import { RunQualityNote } from "@/components/run-quality-note";
 import { RunDownload } from "@/components/run-download";
 import type { EvidenceSource } from "@polyvise/core/debate/types";
@@ -79,8 +80,8 @@ export function ConsensusSurface({ record, run }: { record: PolyviseRecord; run:
   return (
     <section className="page">
       <RunHead record={record} mode="Consensus" tone="" />
-
-      <div className="grid g2 mt24">
+      <ResultPerspectives items={(rounds.at(-1)?.positions ?? []).filter(position => position.model).map(position => ({ title: position.agentName, body: position.answer }))} />
+      <div className="grid g2 consensus-summary">
         <div className="card">
           <div className="card-head">
             <span className="card-title">Convergence</span>
@@ -113,7 +114,7 @@ export function ConsensusSurface({ record, run }: { record: PolyviseRecord; run:
           </div>
         </div>
 
-        <div className="card">
+        <div className="card canvas-synthesis">
           <div className="card-head">
             <span className="card-title">Where they landed</span>
           </div>
@@ -221,7 +222,8 @@ export function AdvisoryPanelSurface({
     <section className="page">
       <RunHead record={record} mode="Advisory panel" tone="" />
 
-      <div className="card mt24">
+      <ResultPerspectives items={advice.filter(entry => entry.model).map(entry => ({ title: entry.lensName, body: entry.recommendation }))} />
+      <div className="card canvas-synthesis">
         <div className="card-head">
           <span className="card-title">Chair synthesis</span>
           <span className="meta push">{chair.confidence}% confidence</span>
@@ -299,7 +301,7 @@ export function AdvisoryPanelSurface({
           <span className="small">No advisor saw another's answer before writing.</span>
         </div>
 
-        <div className="grid g2">
+        <div className="grid g2 advice-canvas">
           {advice.map((entry) => (
             <AdviceCard key={entry.id} advice={entry} brief={lenses.find((lens) => lens.id === entry.lensId)?.brief} />
           ))}

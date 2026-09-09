@@ -1,14 +1,12 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import type { Route } from "next";
+import { useRouter } from "next/navigation";
 import { FormEvent, useRef, useState } from "react";
 import {
   ArrowRight,
   Check,
   ChevronDown,
-  CircleHelp,
   SlidersHorizontal,
   Plus,
   X,
@@ -22,7 +20,7 @@ import {
   modeOrder,
   modelSlotsForMode,
 } from "@/lib/mode-guide";
-import { ModeDiagram } from "./mode-diagram";
+import { PerspectivePreview } from "./perspective-preview";
 
 export function Composer({
   initialMode = "hybrid_council",
@@ -120,8 +118,8 @@ export function Composer({
           <div className="workbench-section">
             <div className="step-heading">
               <span className="step-number">01</span>
-              <h2>What would you like to figure out?</h2>
-              <span className="optional-note">Start with a question</span>
+              <h2>Your question</h2>
+
             </div>
             <label htmlFor="subject" className="sr-only">
               Your question
@@ -180,8 +178,8 @@ export function Composer({
                 <span className="input-count">{context.length}/1600</span>
               </div>
             )}
-            <div className="question-examples">
-              <span>Try a question</span>
+            <details className="question-examples"><summary>Try a question</summary>
+
               {guide.examples.map((example) => (
                 <button
                   type="button"
@@ -195,13 +193,13 @@ export function Composer({
                   <ArrowRight size={13} />
                 </button>
               ))}
-            </div>
+            </details>
           </div>
 
           <div className="workbench-section mode-section">
             <div className="step-heading">
               <span className="step-number">02</span>
-              <h2>Choose how to think it through</h2>
+              <h2>Mode</h2>
             </div>
             <fieldset className="goal-picker">
               <legend className="sr-only">How the models deliberate</legend>
@@ -227,8 +225,8 @@ export function Composer({
                         ? "≋"
                         : "✳"}
                   </span>
-                  <span className="goal-name">{modeGuide[id].goal}</span>
-                  <span className="goal-mode">{modeGuide[id].name}</span>
+                  <span className="goal-name">{modeGuide[id].name}</span>
+                  <span className="goal-mode">{modeGuide[id].goal}</span>
                   <span className="goal-question">{modeGuide[id].prompt}</span>
                   <span className="goal-check" aria-hidden="true">
                     <Check size={11} />
@@ -239,7 +237,7 @@ export function Composer({
             <p className="mode-description" aria-live="polite">
               {guide.description}
             </p>
-            <div className="mode-configuration">
+            <div className="mode-configuration"><div className="step-heading"><span className="step-number">03</span><h2>Perspectives</h2></div>
               {mode === "hybrid_council" && (
                 <fieldset className="inline-choice">
                   <legend>
@@ -420,55 +418,7 @@ export function Composer({
         </div>
       </form>
 
-      <aside className="run-preview" aria-label="What to expect">
-        <div className="preview-caption">
-          <span className="eyebrow">Your thinking room</span>
-          <span className="preview-live-dot" /> <span>Preview</span>
-        </div>
-        <ModeDiagram
-          mode={mode}
-          councilSize={councilSize}
-          agentCount={agentCount}
-        />
-        <div className="preview-copy" aria-live="polite">
-          <span className="eyebrow">What you’ll get</span>
-          <h2 className="display">{guide.outcome}</h2>
-          <ul className="output-checklist">
-            {guide.outputs.map((output) => (
-              <li key={output}>
-                <Check size={14} />
-                {output}
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div className="preview-process">
-          <h3>The path to your answer</h3>
-          <ol>
-            {guide.steps.map((step, i) => (
-              <li key={step}>
-                <span>{i + 1}</span>
-                {step}
-              </li>
-            ))}
-          </ol>
-        </div>
-        <details className="mode-rules">
-          <summary>
-            <CircleHelp size={15} />
-            Good to know
-            <ChevronDown size={14} />
-          </summary>
-          <p>{guide.rule}</p>
-          <Link className="text-action" href={guide.href as Route}>
-            Explore this mode
-            <ArrowRight size={13} />
-          </Link>
-        </details>
-        <a href="#example" className="preview-example-link">
-          See an example first <ArrowRight size={15} />
-        </a>
-      </aside>
+      <PerspectivePreview mode={mode} councilSize={councilSize} agentCount={agentCount} onSettings={() => setShowRouting(!showRouting)} />
     </div>
   );
 }
