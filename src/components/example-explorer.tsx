@@ -103,8 +103,7 @@ export function ExampleExplorer() {
       <div className="example-intro">
         <span className="eyebrow">A little less abstract</span>
         <h2 className="display" id="example-title">
-          Same question. <br />
-          <em>Three useful angles.</em>
+          Three angles on your question.
         </h2>
         <p>“Should our engineering team adopt a four-day workweek?”</p>
         <div className="example-mode-picker" aria-label="Example mode">

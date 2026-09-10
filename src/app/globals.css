@@ -2539,6 +2539,10 @@ th.num {
   border-top: 1px solid var(--line);
   padding-top: 22px;
 }
+.perspectives-section {
+  border-top: 1px solid var(--line);
+  padding-top: 22px;
+}
 .goal-picker {
   border: 0;
   padding: 0;

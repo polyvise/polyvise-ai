@@ -49,7 +49,7 @@ body { background: var(--void); }
 .canvas-home .goal-question { display: none; }
 .canvas-home .goal-check { right: 9px; top: 9px; }
 .canvas-home .mode-description { font-size: 12px; margin-top: 12px; }
-.canvas-home .mode-configuration { margin-top: 24px; }
+.canvas-home .mode-configuration { margin-top: 0; }
 .canvas-home .choice-options { flex-wrap: wrap; }
 .canvas-home .choice-options label { padding: 8px; font-size: 11px; }
 .canvas-home .routing-toggle { flex-wrap: wrap; gap: 8px; font-size: 12px; }

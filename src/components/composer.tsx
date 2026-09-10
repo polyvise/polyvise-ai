@@ -237,7 +237,14 @@ export function Composer({
             <p className="mode-description" aria-live="polite">
               {guide.description}
             </p>
-            <div className="mode-configuration"><div className="step-heading"><span className="step-number">03</span><h2>Perspectives</h2></div>
+          </div>
+
+          <div className="workbench-section perspectives-section">
+            <div className="step-heading">
+              <span className="step-number">03</span>
+              <h2>Perspectives</h2>
+            </div>
+            <div className="mode-configuration">
               {mode === "hybrid_council" && (
                 <fieldset className="inline-choice">
                   <legend>
