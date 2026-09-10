@@ -40,6 +40,5 @@ export function PerspectivePreview({ mode, councilSize, agentCount, onSettings }
     </div>
     <div className="canvas-outcome"><div><span className="eyebrow">The outcome</span><h2>{modeGuide[mode].outcome}</h2><p>{modeGuide[mode].outputs.join(" · ")}</p></div><ArrowUpRight size={24} /></div>
     <p className="canvas-note">{modeGuide[mode].rule}</p>
-    <a href="#example" className="text-action">Explore a completed example <ArrowUpRight size={14} /></a>
   </section>;
 }

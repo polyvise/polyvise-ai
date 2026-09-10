@@ -1,5 +1,4 @@
 import { Composer } from "@/components/composer";
-import { ExampleExplorer } from "@/components/example-explorer";
 import { parseMode } from "@/lib/mode-guide";
 
 type Props = { searchParams: Promise<{ mode?: string | string[] }> };
@@ -10,7 +9,6 @@ export default async function HomePage({ searchParams }: Props) {
   return (
     <div className="decision-home canvas-home">
       <Composer key={initialMode} initialMode={initialMode} />
-      <ExampleExplorer />
     </div>
   );
 }
