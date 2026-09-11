@@ -16,6 +16,7 @@ import { defaultSelections, modelCatalog } from "@/lib/model-catalog";
 import type { CouncilSize, DebateMode } from "@polyvise/core/debate/types";
 import {
   buildRunRequest,
+  defaultQuestion,
   modeGuide,
   modeOrder,
   modelSlotsForMode,
@@ -28,7 +29,7 @@ export function Composer({
   initialMode?: DebateMode;
 }) {
   const router = useRouter();
-  const [subject, setSubject] = useState("");
+  const [subject, setSubject] = useState(defaultQuestion);
   const [context, setContext] = useState("");
   const [mode, setMode] = useState(initialMode);
   const [councilSize, setCouncilSize] = useState<CouncilSize>("quartet");

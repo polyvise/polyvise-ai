@@ -90,6 +90,22 @@ describe("mode request contracts", () => {
 });
 
 describe("composer interactions", () => {
+  it.each(modeOrder)("starts %s with the transit question and shared examples", async (initialMode) => {
+    await act(async () => root.render(<Composer initialMode={initialMode} />));
+    const question = () => (host.querySelector("#subject") as HTMLTextAreaElement).value;
+    expect(question()).toBe("Should cities make public transit free?");
+    const examples = () => Array.from(host.querySelectorAll(".question-examples button"), button => button.textContent);
+    const initialExamples = examples();
+    expect(initialExamples).toHaveLength(3);
+    for (const mode of modeOrder) {
+      await click(`input[value="${mode}"]`);
+      expect(examples()).toEqual(initialExamples);
+      await click(".question-examples button:last-child");
+      expect(question()).toBe("Should a startup build its own authentication system?");
+      await click(".question-examples button:first-of-type");
+      expect(question()).toBe("Should cities make public transit free?");
+    }
+  });
   it("keeps the question and context across modes while showing the right roles", async () => {
     await act(async () => root.render(<Composer />));
     await fill("#subject", "Should we move to a four-day workweek?");

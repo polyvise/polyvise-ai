@@ -11,6 +11,13 @@ export const modeOrder: DebateMode[] = [
   "advisory_panel",
 ];
 
+export const defaultQuestion = "Should cities make public transit free?";
+const exampleQuestions = [
+  defaultQuestion,
+  "Should our engineering team adopt a four-day workweek?",
+  "Should a startup build its own authentication system?",
+];
+
 export const modeGuide = {
   hybrid_council: {
     name: "Debate",
@@ -21,12 +28,8 @@ export const modeGuide = {
     outcome: "Judge’s recommendation",
     start: "Start the debate",
     href: "/debate",
-    placeholder: "Should our engineering team adopt a four-day workweek?",
-    examples: [
-      "Should our engineering team adopt a four-day workweek?",
-      "Should a startup build its own authentication system?",
-      "Should cities make public transit free?",
-    ],
+    placeholder: defaultQuestion,
+    examples: exampleQuestions,
     steps: [
       "Frame the question and gather evidence",
       "Hear both sides across four debate rounds",
@@ -48,13 +51,8 @@ export const modeGuide = {
     outcome: "Agreement and remaining differences",
     start: "Find common ground",
     href: "/consensus",
-    placeholder:
-      "Can a small team safely migrate a production database in one quarter?",
-    examples: [
-      "Can a small team safely migrate a production database in one quarter?",
-      "Will AI coding tools reduce software maintenance costs?",
-      "Can a city meet most daily travel needs with bikes and transit?",
-    ],
+    placeholder: defaultQuestion,
+    examples: exampleQuestions,
     steps: [
       "Gather evidence and assign independent perspectives",
       "Answer alone, then revise after seeing other views",
@@ -76,13 +74,8 @@ export const modeGuide = {
     outcome: "Panel summary and guidance",
     start: "Convene the panel",
     href: "/panel",
-    placeholder:
-      "How should a 20-person company introduce AI into customer support?",
-    examples: [
-      "How should a 20-person company introduce AI into customer support?",
-      "How should a growing engineering team balance delivery and technical debt?",
-      "How could a neighborhood turn an empty lot into a shared space?",
-    ],
+    placeholder: defaultQuestion,
+    examples: exampleQuestions,
     steps: [
       "Frame the strategy and gather evidence",
       "Get independent advice from all four lenses",
