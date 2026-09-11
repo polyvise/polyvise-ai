@@ -12,7 +12,7 @@ export const modeOrder: DebateMode[] = [
 ];
 
 export const defaultQuestion = "Should cities make public transit free?";
-const exampleQuestions = [
+export const exampleQuestions = [
   defaultQuestion,
   "Should our engineering team adopt a four-day workweek?",
   "Should a startup build its own authentication system?",

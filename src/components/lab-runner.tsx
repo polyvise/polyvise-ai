@@ -1,7 +1,8 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import { modelCatalog } from "@/lib/model-catalog";
+import { FormEvent, useRef, useState } from "react";
+import { defaultQuestion, exampleQuestions } from "@/lib/mode-guide";
+import type { ModelOption } from "@/lib/model-catalog";
 import { formatCost, formatLatency, formatTokens } from "@/lib/run-view";
 
 const MAX_MODELS = 3;
@@ -16,9 +17,10 @@ type LabAnswer = {
   failure?: string;
 };
 
-export function LabRunner({ defaultModels }: { defaultModels: string[] }) {
+export function LabRunner({ defaultModels, availableModels }: { defaultModels: string[]; availableModels: ModelOption[] }) {
   const [prompt, setPrompt] = useState("");
-  const [selected, setSelected] = useState<string[]>(defaultModels.slice(0, MAX_MODELS));
+  const promptRef = useRef<HTMLTextAreaElement>(null);
+  const [selected, setSelected] = useState<string[]>(defaultModels.filter(id => availableModels.some(model => model.id === id)).slice(0, MAX_MODELS));
   const [answers, setAnswers] = useState<LabAnswer[] | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,13 +67,25 @@ export function LabRunner({ defaultModels }: { defaultModels: string[] }) {
         <div className="composer mt24">
           <div className="composer-top">
             <textarea
+              ref={promptRef}
               className="q-input"
               rows={2}
               value={prompt}
               onChange={(event) => setPrompt(event.target.value)}
-              placeholder="Should a 40-person company adopt AI customer support this year?"
+              placeholder={defaultQuestion}
               aria-label="Prompt"
             />
+            <details className="question-examples">
+              <summary>Example questions</summary>
+              {exampleQuestions.map((question) => (
+                <button key={question} type="button" disabled={isRunning} onClick={() => {
+                  setPrompt(question);
+                  promptRef.current?.focus();
+                }}>
+                  {question}
+                </button>
+              ))}
+            </details>
           </div>
           <div className="composer-bar">
             <span className="meta">
@@ -88,7 +102,7 @@ export function LabRunner({ defaultModels }: { defaultModels: string[] }) {
           </div>
           <div className="slot-grid">
             <div className="row gap6 wrap">
-              {modelCatalog.map((model) => {
+              {availableModels.map((model) => {
                 const on = selected.includes(model.id);
                 return (
                   <button

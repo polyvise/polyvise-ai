@@ -1,11 +1,9 @@
 import { loadDebateRuntimeConfig } from "@polyvise/core/debate/config";
 import {
-  createDefaultLlmProvider,
   LlmProviderFailure,
-  MockLlmProvider,
   OpenRouterLlmProvider
 } from "@polyvise/core/providers/llm";
-import { isKnownModel } from "@/lib/model-catalog";
+import { modelCatalog } from "@/lib/model-catalog";
 import type { ModelSnapshot } from "@polyvise/core/debate/types";
 
 /** Every selected model is a paid call, so the fan-out stays deliberately small. */
@@ -56,7 +54,7 @@ function providerForModel(model: string) {
     allowDeterministicFallbacks: false
   };
 
-  return base.enableMockLlm ? new MockLlmProvider() : new OpenRouterLlmProvider(config);
+  return new OpenRouterLlmProvider({ ...config, enableMockLlm: false });
 }
 
 export interface LabProviderStatus {
@@ -69,12 +67,28 @@ export interface LabProviderStatus {
 }
 
 export function labProviderStatus(): LabProviderStatus {
-  const provider = createDefaultLlmProvider();
-  return { configured: provider.configured, mock: provider.name === "mock" };
+  const provider = providerForModel(modelCatalog[0].id);
+  return { configured: provider.configured, mock: false };
+}
+
+export async function availableLabModels() {
+  if (!labProviderStatus().configured) return [];
+  const response = await fetch("https://openrouter.ai/api/v1/models", {
+    next: { revalidate: 300 },
+    signal: AbortSignal.timeout(10000)
+  });
+  if (!response.ok) throw new Error("Unable to check OpenRouter model availability.");
+  const catalog = await response.json() as { data: { id: string; supported_parameters?: string[] }[] };
+  const available = new Set(catalog.data.filter(model => model.supported_parameters?.includes("structured_outputs")).map(model => model.id));
+  return modelCatalog.filter(model => available.has(model.id) && model.compatibility !== "experimental");
 }
 
 export async function runModelLab(prompt: string, models: string[]): Promise<LabAnswer[]> {
-  const targets = models.filter(isKnownModel).slice(0, LAB_MAX_MODELS);
+  const available = await availableLabModels();
+  if (models.some(id => !available.some(model => model.id === id))) {
+    throw new Error("A selected model is unavailable through OpenRouter. Refresh the model list and try again.");
+  }
+  const targets = [...new Set(models)].slice(0, LAB_MAX_MODELS);
 
   return Promise.all(
     targets.map(async (model): Promise<LabAnswer> => {

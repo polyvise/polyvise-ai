@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { LabRunner } from "@/components/lab-runner";
-import { PROVIDER_COUNT } from "@/lib/build-info";
-import { defaultSelections, modelCatalog, type SlotId } from "@/lib/model-catalog";
-import { labProviderStatus } from "@/server/model-lab";
+import { defaultSelections, type SlotId } from "@/lib/model-catalog";
+import { labProviderStatus, availableLabModels } from "@/server/model-lab";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +18,8 @@ const slotLabels: Record<SlotId, { label: string; tone: string }> = {
   quick: { label: "Framing & evidence", tone: "neutral" }
 };
 
-export default function LabPage() {
+export default async function LabPage() {
+  const availableModels = await availableLabModels();
   const { configured, mock } = labProviderStatus();
   // A model can hold several seats by default; the roster lists all of them.
   const defaultSlotsFor = new Map<string, SlotId[]>();
@@ -33,7 +33,7 @@ export default function LabPage() {
       <h2 className="display d2 mt10">Compare models on the same prompt</h2>
       <p className="lede mt10 mw620">
         Send one prompt to every configured model and compare the answers side by side, along with what each one cost
-        and how long it took. Models that fail or have no API key stay in the table rather than disappearing from it.
+        and how long it took.
       </p>
 
       {configured && !mock ? null : (
@@ -63,8 +63,7 @@ export default function LabPage() {
                 </>
               ) : (
                 <>
-                  Set <code>OPENROUTER_API_KEY</code> to run live comparisons. Without it the roster below still lists
-                  what the engine knows about, but every call will report as unconfigured.
+                  Model comparisons are unavailable until the server’s OpenRouter connection is configured.
                 </>
               )}
             </p>
@@ -76,7 +75,7 @@ export default function LabPage() {
         <div className="card-head">
           <span className="card-title">Roster</span>
           <span className="meta push">
-            {PROVIDER_COUNT} providers · {modelCatalog.length} models
+            OpenRouter · {availableModels.length} models
           </span>
         </div>
         <div className="tbl-wrap">
@@ -92,7 +91,7 @@ export default function LabPage() {
               </tr>
             </thead>
             <tbody>
-              {modelCatalog.map((model) => {
+              {availableModels.map((model) => {
                 const seats = defaultSlotsFor.get(model.id) ?? [];
                 const experimental = model.compatibility === "experimental";
                 return (
@@ -147,7 +146,7 @@ export default function LabPage() {
         </div>
       </div>
 
-      <LabRunner defaultModels={Array.from(new Set(Object.values(defaultSelections)))} />
+      <LabRunner availableModels={availableModels} defaultModels={Array.from(new Set(Object.values(defaultSelections)))} />
     </section>
   );
 }
