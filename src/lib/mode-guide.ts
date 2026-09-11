@@ -17,8 +17,8 @@ export const modeGuide = {
     goal: "Make a decision",
     prompt: "Should we do it?",
     description:
-      "Put a decision to the test with a case for, a case against, and a neutral judge.",
-    outcome: "A verdict you can examine",
+      "Debaters present cases for and against the decision. A neutral judge reviews both sides.",
+    outcome: "Judge’s recommendation",
     start: "Start the debate",
     href: "/debate",
     placeholder: "Should our engineering team adopt a four-day workweek?",
@@ -44,8 +44,8 @@ export const modeGuide = {
     goal: "Find common ground",
     prompt: "Where do views converge?",
     description:
-      "Let independent perspectives answer, compare their reasoning, then revise or hold.",
-    outcome: "Agreement, with dissent intact",
+      "Independent perspectives answer, compare their reasoning, then revise or retain their positions.",
+    outcome: "Agreement and remaining differences",
     start: "Find common ground",
     href: "/consensus",
     placeholder:
@@ -72,8 +72,8 @@ export const modeGuide = {
     goal: "Explore a strategy",
     prompt: "What am I missing?",
     description:
-      "Look at a plan through four different lenses, then get a chair’s synthesis.",
-    outcome: "A plan seen from every angle",
+      "Four advisors assess the plan. A chair summarizes their advice and disagreements.",
+    outcome: "Panel summary and guidance",
     start: "Convene the panel",
     href: "/panel",
     placeholder:

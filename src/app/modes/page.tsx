@@ -13,11 +13,9 @@ export const metadata: Metadata = {
 export default function ModesPage() {
   return (
     <section className="page mode-guide-page">
-      <span className="eyebrow">A short field guide</span>
-      <h1 className="display d2 mt10">What kind of answer do you need?</h1>
+      <h1 className="display d2 mt10">Mode guide</h1>
       <p className="lede mt10 mw640">
-        Start with the job you need done. Each mode brings a different structure
-        to the same question.
+        Compare how debate, consensus, and advisory panels process a question.
       </p>
       <div className="mode-guide-grid">
         {modeOrder.map((id) => {
@@ -53,8 +51,7 @@ export default function ModesPage() {
       </div>
       <div className="lab-callout">
         <div>
-          <span className="eyebrow">Choosing a model instead?</span>
-          <h2 className="display d3">Take it to the Model lab.</h2>
+          <h2 className="display d3">Compare models</h2>
           <p>
             Send one prompt to configured models and compare their answers,
             timing and cost. This is a separate comparison tool, with its own

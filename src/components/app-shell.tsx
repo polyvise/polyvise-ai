@@ -93,7 +93,6 @@ export function AppShell({ children }: { children: ReactNode }) {
         </span>
         <Link href={"/telemetry" as Route}>Telemetry</Link>
         <Link href={"/system" as Route}>Design system</Link>
-        <span className="push">More perspectives. Clearer decisions.</span>
       </footer>
     </div>
   );

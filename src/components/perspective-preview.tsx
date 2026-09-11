@@ -6,29 +6,29 @@ import { modeGuide } from "@/lib/mode-guide";
 
 const icons = [BarChart3, ShieldQuestion, Users, Lightbulb];
 const debate = [
-  ["The case for", "Explore the upside.", "Build the strongest supporting case and connect the opportunities to evidence.", "Opportunity · Evidence"],
-  ["The case against", "Put the risks in focus.", "Challenge assumptions, examine trade-offs, and test where the decision could fall short.", "Risk · Trade-offs"],
-  ["Questions & rebuttals", "Give every claim a closer look.", "Both sides question each other and respond to the strongest opposing arguments.", "Challenge · Response"],
-  ["The neutral judge", "Bring the whole picture together.", "Weigh both cases, explain the recommendation, and preserve what remains uncertain.", "Synthesis · Uncertainty"],
+  ["The case for", "Supporting arguments", "Build the strongest supporting case and connect the opportunities to evidence.", "Opportunity · Evidence"],
+  ["The case against", "Opposing arguments", "Challenge assumptions, examine trade-offs, and test where the decision could fall short.", "Risk · Trade-offs"],
+  ["Questions & rebuttals", "Questions and responses", "Both sides question each other and respond to the strongest opposing arguments.", "Challenge · Response"],
+  ["The neutral judge", "Review and recommendation", "Weigh both cases, explain the recommendation, and preserve what remains uncertain.", "Synthesis · Uncertainty"],
 ];
 const panel = [
-  ["The economist", "Understand the incentives.", "Examine costs, benefits, resource allocation, and the economics behind your strategy.", "Value · Incentives"],
-  ["The skeptic", "Test the assumptions.", "Look for weak points, hidden risks, and conditions that could change the recommendation.", "Risk · Assumptions"],
-  ["The operator", "Make it work in practice.", "Consider execution, capacity, dependencies, and what a practical next step looks like.", "Execution · Feasibility"],
-  ["The ethicist", "Consider who is affected.", "Examine fairness, responsibilities, and the impact of the decision on different people.", "Fairness · Impact"],
+  ["The economist", "Costs and incentives", "Examine costs, benefits, resource allocation, and the economics behind your strategy.", "Value · Incentives"],
+  ["The skeptic", "Assumptions and risks", "Look for weak points, hidden risks, and conditions that could change the recommendation.", "Risk · Assumptions"],
+  ["The operator", "Implementation and capacity", "Consider execution, capacity, dependencies, and what a practical next step looks like.", "Execution · Feasibility"],
+  ["The ethicist", "Fairness and impact", "Examine fairness, responsibilities, and the impact of the decision on different people.", "Fairness · Impact"],
 ];
 const consensus = [
-  ["Independent answers", "Start with different views.", "Each perspective answers on its own before seeing what the others think.", "Independence · Range"],
-  ["Critical review", "Make space for disagreement.", "Perspectives compare reasoning and identify where their assumptions diverge.", "Comparison · Dissent"],
-  ["Revised positions", "See what changes.", "Each perspective can revise its stance or hold its ground across your selected rounds.", "Reflection · Revision"],
-  ["Shared synthesis", "Find the common ground.", "Inspect the shared answer, measured stance agreement, and the reasoning of holdouts.", "Agreement · Holdouts"],
+  ["Independent answers", "Initial positions", "Each perspective answers on its own before seeing what the others think.", "Independence · Range"],
+  ["Critical review", "Comparison of reasoning", "Perspectives compare reasoning and identify where their assumptions diverge.", "Comparison · Dissent"],
+  ["Revised positions", "Position updates", "Each perspective can revise its stance or hold its ground across your selected rounds.", "Reflection · Revision"],
+  ["Shared synthesis", "Agreement and disagreements", "Inspect the shared answer, measured stance agreement, and the reasoning of holdouts.", "Agreement · Holdouts"],
 ];
 
 export function PerspectivePreview({ mode, councilSize, agentCount, onSettings }: { mode: DebateMode; councilSize: CouncilSize; agentCount: number; onSettings: () => void }) {
   const cards = mode === "advisory_panel" ? panel : mode === "consensus" ? consensus : debate;
   return <section className="perspective-canvas" aria-label="What to expect">
     <header className="canvas-heading">
-      <div><span className="eyebrow">A little perspective changes everything</span><h1>See the whole picture.</h1><p>Multiple perspectives. A sharper answer.</p></div>
+      <div><h1>How {modeGuide[mode].name.toLowerCase()} works</h1></div>
       <button type="button" className="btn canvas-settings" onClick={onSettings}><SlidersHorizontal size={14} /> Model settings</button>
     </header>
     <div className="canvas-status"><span>{modeGuide[mode].name}</span><span>{mode === "consensus" ? `${agentCount} independent perspectives` : mode === "advisory_panel" ? "4 advisors + a chair" : `${councilSize === "duo" ? "2" : "4"} debaters + a judge`}</span></div>
