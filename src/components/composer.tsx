@@ -3,6 +3,7 @@
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { FormEvent, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import {
   ArrowRight,
   Check,
@@ -16,7 +17,6 @@ import { defaultSelections, modelCatalog } from "@/lib/model-catalog";
 import type { CouncilSize, DebateMode } from "@polyvise/core/debate/types";
 import {
   buildRunRequest,
-  defaultQuestion,
   modeGuide,
   modeOrder,
   modelSlotsForMode,
@@ -29,7 +29,7 @@ export function Composer({
   initialMode?: DebateMode;
 }) {
   const router = useRouter();
-  const [subject, setSubject] = useState(defaultQuestion);
+  const [subject, setSubject] = useState("");
   const [context, setContext] = useState("");
   const [mode, setMode] = useState(initialMode);
   const [councilSize, setCouncilSize] = useState<CouncilSize>("quartet");
@@ -42,6 +42,12 @@ export function Composer({
   const [error, setError] = useState<string | null>(null);
   const submitting = useRef(false);
   const subjectRef = useRef<HTMLTextAreaElement>(null);
+  const modelSettingsRef = useRef<HTMLDivElement>(null);
+  function openModelSettings() {
+    flushSync(() => setShowRouting(true));
+    modelSettingsRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+    modelSettingsRef.current?.focus({ preventScroll: true });
+  }
   const guide = modeGuide[mode];
   const ready =
     subject.trim().length >= 4 &&
@@ -51,12 +57,6 @@ export function Composer({
   const customModels = modelSlotsForMode(mode, councilSize).some(
     ({ id }) => models[id] !== defaultSelections[id],
   );
-  const settingsSummary =
-    mode === "hybrid_council"
-      ? `${councilSize === "duo" ? "1 vs 1" : "2 vs 2"} + judge · 6 rounds`
-      : mode === "consensus"
-        ? `${agentCount} perspectives · ${rounds} rounds`
-        : "4 advisors + chair";
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -249,9 +249,9 @@ export function Composer({
               {mode === "hybrid_council" && (
                 <fieldset className="inline-choice">
                   <legend>
-                    Debaters <span>+ a neutral judge</span>
+                    Debaters + a neutral judge
                   </legend>
-                  <div className="choice-options">
+                  <div className="choice-options debate-size-options">
                     {(["duo", "quartet"] as const).map((size) => (
                       <label
                         key={size}
@@ -265,8 +265,8 @@ export function Composer({
                           onChange={() => setCouncilSize(size)}
                         />
                         {size === "duo"
-                          ? "1 vs 1 · focused"
-                          : "2 vs 2 · more perspectives"}
+                          ? "1 vs 1"
+                          : "2 vs 2"}
                       </label>
                     ))}
                   </div>
@@ -340,12 +340,12 @@ export function Composer({
               onClick={() => setShowRouting(!showRouting)}
             >
               <SlidersHorizontal size={15} />
-              Model settings
+              Choose models
               <span>{customModels ? "Customized" : "Defaults selected"}</span>
               <ChevronDown size={14} className={showRouting ? "rotated" : ""} />
             </button>
             {showRouting && (
-              <div id="model-settings" className="routing-settings">
+              <div id="model-settings" className="routing-settings" ref={modelSettingsRef} tabIndex={-1}>
                 <div className="row gap10 wrap">
                   <p>
                     Choose models by role. Multiple perspectives can use the
@@ -387,10 +387,6 @@ export function Composer({
             )}
           </div>
           <div className="workbench-submit">
-            <div>
-              <span className="submit-mode">{guide.name}</span>
-              <span className="submit-summary">{settingsSummary}</span>
-            </div>
             <button
               type="submit"
               className="btn btn-primary btn-lg"
@@ -426,7 +422,7 @@ export function Composer({
         </div>
       </form>
 
-      <PerspectivePreview mode={mode} councilSize={councilSize} agentCount={agentCount} onSettings={() => setShowRouting(!showRouting)} />
+      <PerspectivePreview mode={mode} councilSize={councilSize} agentCount={agentCount} onSettings={openModelSettings} />
     </div>
   );
 }

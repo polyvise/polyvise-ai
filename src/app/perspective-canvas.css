@@ -49,16 +49,26 @@ body { background: var(--void); }
 .canvas-home .goal-question { display: none; }
 .canvas-home .goal-check { right: 9px; top: 9px; }
 .canvas-home .mode-description { font-size: 12px; margin-top: 12px; }
-.canvas-home .mode-configuration { margin-top: 0; }
+.canvas-home .mode-configuration { margin-top: 0; padding: 14px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--surface); color: var(--text); }
 .canvas-home .choice-options { flex-wrap: wrap; }
+.canvas-home .inline-choice legend,
+.canvas-home .rounds-choice { font-family: var(--ui); font-size: 15px; font-weight: 600; line-height: 1.5; color: var(--text); }
+.canvas-home .inline-choice legend { padding: 0; }
+.canvas-home .inline-choice legend span { font-size: inherit; line-height: inherit; vertical-align: baseline; }
 .canvas-home .choice-options label { padding: 8px; font-size: 11px; }
-.canvas-home .routing-toggle { flex-wrap: wrap; gap: 8px; font-size: 12px; }
+.canvas-home .consensus-settings .choice-options label,
+.canvas-home .rounds-choice select { font-family: var(--ui); font-size: 11px; font-weight: 600; }
+.canvas-home .debate-size-options label,
+.canvas-home .lens-roster > span { font-family: var(--ui); font-size: 14px; font-weight: 600; line-height: 1.3; color: var(--ivory); }
+.canvas-home .routing-toggle { width: 100%; flex-wrap: wrap; gap: 8px; font-size: 15px; font-weight: 600; padding: 14px; margin-top: 18px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--surface); color: var(--text); }
+.canvas-home .routing-settings { scroll-margin-top: 100px; }
 .canvas-home .routing-toggle > span { margin-left: 0; }
 .canvas-home .routing-row { grid-template-columns: 1fr; gap: 7px; }
 .canvas-home .routing-row select { width: 100%; min-width: 0; }
 .canvas-home .workbench-submit { display: flex; flex-direction: column; align-items: stretch; padding: 20px; gap: 12px; }
 .canvas-home .workbench-submit > div { display: flex; flex-direction: column; }
-.canvas-home .workbench-submit button { width: 100%; background: #0b4d4b; color: #fff; border-color: #0b4d4b; }
+.canvas-home .workbench-submit button { width: 100%; min-height: 54px; font-size: 16px; font-weight: 700; background: #63dfc0; color: #082c30; border: 2px solid #63dfc0; box-shadow: 0 3px 12px #0002; }
+.canvas-home .workbench-submit button:hover:not(:disabled) { background: #91eed6; color: #082c30; border-color: #91eed6; }
 .canvas-home .run-expectations { padding: 0 20px 20px; }
 .perspective-canvas { padding: 38px 34px; min-width: 0; }
 .canvas-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; }

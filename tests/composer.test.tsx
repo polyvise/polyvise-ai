@@ -90,10 +90,28 @@ describe("mode request contracts", () => {
 });
 
 describe("composer interactions", () => {
-  it.each(modeOrder)("starts %s with the transit question and shared examples", async (initialMode) => {
+  it("opens and brings model settings into view even when already open", async () => {
+    const scroll = vi.fn();
+    const original = HTMLElement.prototype.scrollIntoView;
+    HTMLElement.prototype.scrollIntoView = scroll;
+    try {
+      await act(async () => root.render(<Composer />));
+      for (let attempt = 0; attempt < 2; attempt++) {
+        await click(".canvas-settings");
+        expect(host.querySelectorAll(".routing-row").length).toBeGreaterThan(0);
+        expect(document.activeElement).toBe(host.querySelector("#model-settings"));
+      }
+      expect(scroll).toHaveBeenCalledTimes(2);
+    } finally {
+      HTMLElement.prototype.scrollIntoView = original;
+    }
+  });
+  it.each(modeOrder)("starts %s empty with the transit placeholder and shared examples", async (initialMode) => {
     await act(async () => root.render(<Composer initialMode={initialMode} />));
     const question = () => (host.querySelector("#subject") as HTMLTextAreaElement).value;
-    expect(question()).toBe("Should cities make public transit free?");
+    expect(question()).toBe("");
+    expect((host.querySelector("#subject") as HTMLTextAreaElement).placeholder).toBe("Should cities make public transit free?");
+    expect((host.querySelector('button[type="submit"]') as HTMLButtonElement).disabled).toBe(true);
     const examples = () => Array.from(host.querySelectorAll(".question-examples button"), button => button.textContent);
     const initialExamples = examples();
     expect(initialExamples).toHaveLength(3);
