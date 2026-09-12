@@ -181,6 +181,8 @@ export async function startDebate(input: DebateRequest): Promise<StartDebateResu
       return completed;
     } catch (error) {
       const failedSnapshot = modelSnapshotFromError(error);
+      const lastStage = [...bus.buffer].reverse().find((event) => event.kind === "stage");
+      const failure = describeRunFailure(error, failedSnapshot, lastStage?.kind === "stage" ? lastStage.status : undefined, record.mode);
       if (failedSnapshot) {
         bus.emit({ kind: "model_snapshot", snapshot: failedSnapshot });
       }
@@ -189,14 +191,25 @@ export async function startDebate(input: DebateRequest): Promise<StartDebateResu
       );
       bus.emit({
         kind: "error",
-        message: hasStartedDebate ? DEBATE_JUDGE_UNAVAILABLE_MESSAGE : DEBATE_UNAVAILABLE_MESSAGE
+        message: failure.reason
       });
       const failed: PolyviseRecord = {
         ...record,
         status: "failed",
+        failureReason: failure.reason,
+        failedStep: failure.step,
+        failedModel: failedSnapshot?.model,
         updatedAt: new Date().toISOString()
       };
       await repository.save(failed);
+      console.error("[polyvise.run.failed]", {
+        runId: record.id,
+        mode: record.mode,
+        step: failure.step,
+        model: failedSnapshot?.model,
+        reason: failure.reason,
+        technicalReason: error instanceof Error ? error.message.slice(0, 1000) : "Unknown error"
+      });
       scheduleBusCleanup(record.id);
       throw error;
     }
@@ -239,6 +252,33 @@ function modelSnapshotFromError(error: unknown): ModelSnapshot | null {
     return error.snapshot;
   }
   return null;
+}
+
+function describeRunFailure(
+  error: unknown,
+  snapshot: ModelSnapshot | null,
+  status: DebateRecord["status"] | undefined,
+  mode: DebateRequest["mode"]
+): { reason: string; step: string } {
+  const stageLabels: Partial<Record<DebateRecord["status"], string>> = {
+    framing: "question framing",
+    researching: "evidence gathering",
+    debating: mode === "advisory_panel" ? "panel advice" : mode === "consensus" ? "perspective responses" : "debate",
+    judging: mode === "advisory_panel" ? "panel chair" : mode === "consensus" ? "consensus summary" : "judge review"
+  };
+  const step = snapshot?.role ?? (status ? stageLabels[status] : undefined) ?? "run setup";
+  const raw = snapshot?.failure ?? (error instanceof Error ? error.message : "The run could not finish.");
+  const timedOut = /abort|timed?\s*out|timeout/i.test(raw);
+  const prefix = snapshot?.model ? `${snapshot.model} ${timedOut ? "timed out" : "failed"}` : "The run failed";
+  const detail = /structured output validation failed/i.test(raw)
+    ? "The model returned an answer that did not match the required format."
+    : /openrouter_api_key/i.test(raw)
+      ? "The model provider is not configured."
+      : raw;
+  return {
+    reason: `${prefix} during ${step}.${timedOut ? " Try a faster model or try again later." : ` ${detail}`}`.slice(0, 500),
+    step
+  };
 }
 
 export async function createDebate(input: DebateRequest): Promise<PolyviseRecord> {

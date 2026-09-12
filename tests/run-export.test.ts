@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { startDebate } from "@/server/debate-store";
 import { runBrief } from "@/lib/run-export";
+import { currentDebateTerminology } from "@/lib/debate-terminology";
 import {
   asConsensusRun,
   asAdvisoryPanelRun,
@@ -39,7 +40,9 @@ describe("portable run briefs", () => {
         expect(text).not.toContain("## Verdict");
       }
       if (debate) {
-        expect(text).toContain(debate.summary!.recommendation);
+        expect(text).toContain(
+          currentDebateTerminology(debate.summary!.recommendation),
+        );
         expect(text).toContain("## Verdict");
       }
     },

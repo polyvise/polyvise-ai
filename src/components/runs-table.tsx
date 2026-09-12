@@ -30,9 +30,14 @@ export function RunsTable({ runs }: { runs: RunSummary[] }) {
                 </td>
                 <td>
                   {run.status === "failed" ? (
-                    <span className="chip alert">
-                      <span className="dot" />
-                      {run.failedStep ? `Failed at ${run.failedStep}` : "Failed"}
+                    <span className="stack gap6">
+                      <span className="chip alert">
+                        <span className="dot" />
+                        {run.failedStep ? `Failed at ${run.failedStep}` : "Failed"}
+                      </span>
+                      <span className="meta">
+                        {run.failureReason ?? "This older run did not retain its failure details."}
+                      </span>
                     </span>
                   ) : run.verdict ? (
                     <span className="row gap6 wrap">

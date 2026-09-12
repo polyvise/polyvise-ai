@@ -106,9 +106,24 @@ describe("run summaries across modes", () => {
   it("leaves a run with no verdict blank rather than guessing one", () => {
     const summary = toRunSummary({ ...baseRecord(), status: "queued" });
 
+    expect(summary.mode).toBe("Consensus");
     expect(summary.verdict).toBeNull();
     expect(summary.confidence).toBeNull();
     expect(summary.costUsd).toBe(0);
+  });
+
+  it("keeps a failed advisory run labeled and includes its saved reason", () => {
+    const summary = toRunSummary({
+      ...baseRecord(),
+      mode: "advisory_panel",
+      status: "failed",
+      failedStep: "panel economist",
+      failureReason: "The selected model timed out during panel economist."
+    });
+
+    expect(summary.mode).toBe("Advisory panel");
+    expect(summary.failedStep).toBe("panel economist");
+    expect(summary.failureReason).toContain("timed out");
   });
 });
 

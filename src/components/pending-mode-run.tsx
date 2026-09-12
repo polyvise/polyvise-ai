@@ -74,7 +74,7 @@ export function PendingModeRun({ record }: { record: PolyviseRecord }) {
         </div>
         <p className="small mt14">
           {failed
-            ? "Your run has been saved. Try again with another model or return to it from Your runs."
+            ? record.failureReason ?? "This older run did not retain its failure details. Try again with another model."
             : "You can leave this page and return from Your runs. The result will appear here when the work is complete."}
         </p>
         {connection && <p className="small mt10">{connection}</p>}

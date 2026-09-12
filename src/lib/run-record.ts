@@ -22,6 +22,10 @@ export type StoredRun = DebateRun | ConsensusRunEnvelope | AdvisoryPanelRunEnvel
  */
 export type PolyviseRecord = Omit<DebateRecord, "latestRun"> & {
   latestRun?: StoredRun;
+  /** A concise, safe explanation retained when a run ends before producing a result. */
+  failureReason?: string;
+  failedStep?: string;
+  failedModel?: string;
 };
 
 /**

@@ -14,6 +14,7 @@ export interface RunSummary {
   verdict: string | null;
   verdictTone: "pro" | "con" | "judge" | null;
   failedStep: string | null;
+  failureReason: string | null;
   confidence: number | null;
   /** One extra fact the mode wants surfaced, e.g. "2 dissenting". */
   detail: string | null;
@@ -35,10 +36,22 @@ export function toRunSummary(record: PolyviseRecord): RunSummary {
     id: record.id,
     title: record.resolution || record.subject,
     status: record.status,
-    failedStep: run?.trace.find((entry) => entry.status === "failed")?.step ?? null,
+    failedStep: record.failedStep ?? run?.trace.find((entry) => entry.status === "failed")?.step ?? null,
+    failureReason: record.failureReason ?? null,
     costUsd: run?.modelSnapshots.reduce((sum, snapshot) => sum + (snapshot.estimatedCostUsd ?? 0), 0) ?? 0,
     createdAt: record.createdAt
   };
+
+  if (!run && record.mode !== "hybrid_council") {
+    return {
+      ...shared,
+      mode: record.mode === "consensus" ? "Consensus" : "Advisory panel",
+      verdict: null,
+      verdictTone: null,
+      confidence: null,
+      detail: null
+    };
+  }
 
   const consensus = run ? asConsensusRun(run) : null;
   if (consensus) {
