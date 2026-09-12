@@ -36,7 +36,7 @@ export function RunsTable({ runs }: { runs: RunSummary[] }) {
                         {run.failedStep ? `Failed at ${run.failedStep}` : "Failed"}
                       </span>
                       <span className="meta">
-                        {run.failureReason ?? "This older run did not retain its failure details."}
+                        {run.failureReason ?? "The run failed, but no diagnostic was recorded."}
                       </span>
                     </span>
                   ) : run.verdict ? (
