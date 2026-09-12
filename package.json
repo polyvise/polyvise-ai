@@ -9,9 +9,10 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test": "vitest run && node --test tests/core-terminology-patch.test.mjs",
+    "test:coverage": "vitest run --coverage && node --test tests/core-terminology-patch.test.mjs",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "verify": "npm run typecheck && npm test && npm run build",
+    "verify": "npm run typecheck && npm run test:coverage && npm run build",
     "postinstall": "node scripts/patch-core-terminology.mjs"
   },
   "dependencies": {
@@ -30,6 +31,7 @@
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
+    "@vitest/coverage-v8": "^5.0.0",
     "autoprefixer": "latest",
     "drizzle-kit": "latest",
     "jsdom": "latest",
