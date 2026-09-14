@@ -2176,6 +2176,66 @@ th.num {
     transform: rotate(1turn);
   }
 }
+.pending-step {
+  position: relative;
+  overflow: hidden;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+.pending-step.is-active {
+  border-color: var(--pro);
+  background: color-mix(in srgb, var(--surface) 88%, var(--pro-dim));
+}
+.pending-step.is-complete {
+  border-color: color-mix(in srgb, var(--pro) 45%, var(--line));
+}
+.pending-step.is-pending {
+  opacity: 0.68;
+}
+.pending-step.is-failed {
+  border-color: var(--alert);
+}
+.step-state {
+  margin-left: auto;
+  color: var(--faint);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.step-state.complete,
+.step-state.active {
+  color: var(--pro-ink);
+}
+.step-state.complete {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.step-state.failed {
+  color: var(--alert-ink);
+}
+.step-progress {
+  height: 4px;
+  overflow: hidden;
+  border-radius: var(--pill);
+  background: var(--line);
+}
+.step-progress span {
+  display: block;
+  width: 42%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--pro);
+  animation: step-progress 1.35s ease-in-out infinite alternate;
+}
+@keyframes step-progress {
+  from {
+    transform: translateX(-35%);
+  }
+  to {
+    transform: translateX(175%);
+  }
+}
 .mw340 { max-width: 340px; }
 .mw620 { max-width: 620px; }
 .mw640 { max-width: 640px; }

@@ -14,7 +14,12 @@ export function RunsTable({ runs }: { runs: RunSummary[] }) {
               <th>Resolution</th>
               <th>Mode</th>
               <th>Verdict</th>
-              <th className="num">Conf.</th>
+              <th
+                className="num"
+                title="Agreement for consensus runs; confidence for debate and advisory runs"
+              >
+                Measure
+              </th>
               <th className="num">Cost</th>
               <th>When</th>
             </tr>
@@ -45,8 +50,7 @@ export function RunsTable({ runs }: { runs: RunSummary[] }) {
                         <span className="dot" />
                         {run.verdict}
                       </span>
-                      {/* The mode's own footnote — "2 dissenting" changes how
-                          a converged verdict should be read. */}
+                      {/* The mode's own footnote explains the result at a glance. */}
                       {run.detail ? <span className="meta">{run.detail}</span> : null}
                     </span>
                   ) : (
@@ -56,7 +60,11 @@ export function RunsTable({ runs }: { runs: RunSummary[] }) {
                     </span>
                   )}
                 </td>
-                <td className="num">{run.confidence === null ? "—" : `${run.confidence}%`}</td>
+                <td className="num">
+                  {run.confidence === null
+                    ? "—"
+                    : `${run.confidence}% ${run.confidenceKind === "agreement" ? "agreement" : "confidence"}`}
+                </td>
                 <td className="num">{run.costUsd > 0 ? formatCost(run.costUsd) : "—"}</td>
                 <td className="meta">{relativeTime(run.createdAt)}</td>
               </tr>
