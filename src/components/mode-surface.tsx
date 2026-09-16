@@ -10,6 +10,7 @@ import type {
   PanelAdvice
 } from "@polyvise/core/runs/types";
 import type { PolyviseRecord } from "@/lib/run-record";
+import { consensusStanceBreakdown } from "@/lib/run-summary";
 
 /* ------------------------------------------------------------------ shared */
 
@@ -76,6 +77,7 @@ function stanceLabel(stance: ConsensusStance): string {
 export function ConsensusSurface({ record, run }: { record: PolyviseRecord; run: ConsensusRunEnvelope }) {
   const { agents, rounds, convergence, holdouts, summary } = run.result;
   const peak = Math.max(...convergence.spreadByRound, 0.01);
+  const stanceBreakdown = consensusStanceBreakdown(rounds.at(-1)?.positions ?? []);
 
   return (
     <section className="page">
@@ -86,7 +88,7 @@ export function ConsensusSurface({ record, run }: { record: PolyviseRecord; run:
           <div className="card-head">
             <span className="card-title">Convergence</span>
             <span className={`chip push ${convergence.converged ? "pro" : "con"}`}>
-              {convergence.converged ? "Converged" : "No consensus"}
+              {convergence.converged ? "Converged" : "Panel remained split"}
             </span>
           </div>
           <div className="card-pad">
@@ -110,6 +112,7 @@ export function ConsensusSurface({ record, run }: { record: PolyviseRecord; run:
               ))}
             </div>
             <p className="small mt14">{convergence.range}</p>
+            {stanceBreakdown ? <p className="meta mt10">Final positions: {stanceBreakdown}.</p> : null}
             <p className="meta mt10">Agreement measures how close the agents’ stances are. It is not a probability that their answer is correct.</p>
           </div>
         </div>
@@ -131,7 +134,7 @@ export function ConsensusSurface({ record, run }: { record: PolyviseRecord; run:
       {holdouts.length ? (
         <div className="card mt24">
           <div className="card-head">
-            <span className="card-title">Dissent</span>
+            <span className="card-title">Outside the largest group</span>
             <span className="meta push">
               {holdouts.length} of {agents.length} outside the majority
             </span>

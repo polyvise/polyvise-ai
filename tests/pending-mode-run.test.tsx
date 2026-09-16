@@ -23,6 +23,16 @@ it.each(["consensus", "advisory_panel"] as const)(
       },
     );
     router.refresh.mockClear();
+    let resolveFetch!: (response: { ok: boolean; json: () => Promise<unknown> }) => void;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        () =>
+          new Promise<{ ok: boolean; json: () => Promise<unknown> }>((resolve) => {
+            resolveFetch = resolve;
+          }),
+      ),
+    );
     const host = document.createElement("div");
     const root = createRoot(host);
     const record: PolyviseRecord = {
@@ -45,6 +55,42 @@ it.each(["consensus", "advisory_panel"] as const)(
       expect(host.textContent).not.toContain("Debate floor");
       await act(async () =>
         stream.dispatchEvent(
+          new MessageEvent(mode === "consensus" ? "agents" : "lenses", {
+            data: JSON.stringify({
+              [mode === "consensus" ? "agents" : "lenses"]: [{}, {}, {}, {}],
+            }),
+          }),
+        ),
+      );
+      await act(async () =>
+        stream.dispatchEvent(
+          new MessageEvent("stage", {
+            data: JSON.stringify({ status: "framing" }),
+          }),
+        ),
+      );
+      expect(host.textContent).toContain(
+        mode === "consensus"
+          ? "4 independent perspectives are ready."
+          : "4 independent advisors are ready.",
+      );
+      await act(async () =>
+        stream.dispatchEvent(
+          new MessageEvent("sources", {
+            data: JSON.stringify({ sources: [{}, {}] }),
+          }),
+        ),
+      );
+      await act(async () =>
+        stream.dispatchEvent(
+          new MessageEvent("stage", {
+            data: JSON.stringify({ status: "researching" }),
+          }),
+        ),
+      );
+      expect(host.textContent).toContain("2 sources are ready.");
+      await act(async () =>
+        stream.dispatchEvent(
           new MessageEvent("stage", {
             data: JSON.stringify({ status: "debating" }),
           }),
@@ -55,13 +101,53 @@ it.each(["consensus", "advisory_panel"] as const)(
           ? "Comparing independent perspectives"
           : "Gathering advice from each lens",
       );
+      expect(host.textContent).toMatch(/Step 1\s*Complete/);
+      expect(host.textContent).toContain("Step 2In progress");
+      if (mode === "consensus") {
+        await act(async () =>
+          stream.dispatchEvent(
+            new MessageEvent("round", {
+              data: JSON.stringify({ round: { round: 1 } }),
+            }),
+          ),
+        );
+        expect(host.textContent).toContain("Round 1 is complete.");
+      } else {
+        await act(async () =>
+          stream.dispatchEvent(
+            new MessageEvent("advice", {
+              data: JSON.stringify({ advice: { lensId: "economist" } }),
+            }),
+          ),
+        );
+        expect(host.textContent).toContain("1 of 4 advisors");
+      }
       await act(async () => stream.dispatchEvent(new Event("error")));
       expect(stream.close).not.toHaveBeenCalled();
       expect(host.textContent).toContain("Reconnecting");
       await act(async () => stream.dispatchEvent(new Event("open")));
       expect(host.textContent).not.toContain("Reconnecting");
+      await act(async () =>
+        stream.dispatchEvent(
+          new MessageEvent("stage", {
+            data: JSON.stringify({ status: "judging" }),
+          }),
+        ),
+      );
+      expect(host.textContent).toMatch(/Step 2\s*Complete/);
+      expect(host.textContent).toContain("Step 3In progress");
       await act(async () => stream.dispatchEvent(new MessageEvent("complete")));
       expect(stream.close).toHaveBeenCalled();
+      expect(host.textContent).toContain("Finalizing your result");
+      expect(host.textContent).not.toContain("Your result is ready");
+      expect(router.refresh).not.toHaveBeenCalled();
+      await act(async () => {
+        resolveFetch({
+          ok: true,
+          json: async () => ({ debate: { ...record, status: "complete", latestRun: {} } }),
+        });
+        await Promise.resolve();
+      });
       expect(router.refresh).toHaveBeenCalledTimes(1);
     } finally {
       await act(async () => root.unmount());

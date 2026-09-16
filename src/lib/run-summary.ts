@@ -1,4 +1,5 @@
 import type { DebateRecord } from "@polyvise/core/debate/types";
+import type { ConsensusStance } from "@polyvise/core/runs/types";
 import { asAdvisoryPanelRun, asConsensusRun, asDebateRun, type PolyviseRecord } from "@/lib/run-record";
 import { formatRecommendation, recommendationTone } from "./run-view";
 
@@ -16,7 +17,8 @@ export interface RunSummary {
   failedStep: string | null;
   failureReason: string | null;
   confidence: number | null;
-  /** One extra fact the mode wants surfaced, e.g. "2 dissenting". */
+  confidenceKind: "confidence" | "agreement" | null;
+  /** One extra fact the mode wants surfaced, such as its final stance distribution. */
   detail: string | null;
   costUsd: number;
   createdAt: string;
@@ -49,22 +51,24 @@ export function toRunSummary(record: PolyviseRecord): RunSummary {
       verdict: null,
       verdictTone: null,
       confidence: null,
+      confidenceKind: null,
       detail: null
     };
   }
 
   const consensus = run ? asConsensusRun(run) : null;
   if (consensus) {
-    const { convergence, holdouts } = consensus.result;
+    const { convergence, rounds } = consensus.result;
     return {
       ...shared,
       mode: "Consensus",
-      verdict: isComplete ? (convergence.converged ? "Converged" : "No consensus") : null,
+      verdict: isComplete ? (convergence.converged ? "Converged" : "Panel remained split") : null,
       // Convergence is agreement, not endorsement, so a converged panel is
       // teal and a split one is amber — never the judge's violet.
       verdictTone: isComplete ? (convergence.converged ? "pro" : "con") : null,
       confidence: isComplete ? Math.round(convergence.agreementLevel * 100) : null,
-      detail: isComplete && holdouts.length ? `${holdouts.length} dissenting` : null
+      confidenceKind: isComplete ? "agreement" : null,
+      detail: isComplete ? consensusStanceBreakdown(rounds.at(-1)?.positions ?? []) : null
     };
   }
 
@@ -77,6 +81,7 @@ export function toRunSummary(record: PolyviseRecord): RunSummary {
       verdict: isComplete ? (chair.conflicts.length ? "Split panel" : "Aligned") : null,
       verdictTone: isComplete ? (chair.conflicts.length ? "con" : "pro") : null,
       confidence: isComplete ? Math.round(chair.confidence) : null,
+      confidenceKind: isComplete ? "confidence" : null,
       detail: isComplete ? `${advice.length} lenses` : null
     };
   }
@@ -89,6 +94,25 @@ export function toRunSummary(record: PolyviseRecord): RunSummary {
     verdict: isComplete && scorecard ? formatRecommendation(scorecard.recommendation) : null,
     verdictTone: isComplete && scorecard ? recommendationTone(scorecard.recommendation) : null,
     confidence: isComplete && scorecard ? Math.round(scorecard.confidence * 100) : null,
+    confidenceKind: isComplete && scorecard ? "confidence" : null,
     detail: null
   };
+}
+
+export function consensusStanceBreakdown(positions: Array<{ stance: ConsensusStance }>): string | null {
+  if (!positions.length) return null;
+  const counts = positions.reduce(
+    (total, position) => {
+      if (position.stance === "agree" || position.stance === "strongly_agree") total.agree += 1;
+      else if (position.stance === "neutral") total.neutral += 1;
+      else total.disagree += 1;
+      return total;
+    },
+    { agree: 0, neutral: 0, disagree: 0 },
+  );
+
+  return (["agree", "neutral", "disagree"] as const)
+    .filter((stance) => counts[stance] > 0)
+    .map((stance) => `${counts[stance]} ${stance}`)
+    .join(" · ");
 }

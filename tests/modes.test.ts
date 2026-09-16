@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { startDebate } from "@/server/debate-store";
-import { toRunSummary } from "@/lib/run-summary";
+import { consensusStanceBreakdown, toRunSummary } from "@/lib/run-summary";
 import {
   asAdvisoryPanelRun,
   asConsensusRun,
@@ -87,8 +87,9 @@ describe("run summaries across modes", () => {
     const summary = toRunSummary(record);
 
     expect(summary.mode).toBe("Consensus");
-    expect(["Converged", "No consensus"]).toContain(summary.verdict);
+    expect(["Converged", "Panel remained split"]).toContain(summary.verdict);
     expect(summary.confidence).not.toBeNull();
+    expect(summary.confidenceKind).toBe("agreement");
   });
 
   it("reports whether the panel split", async () => {
@@ -109,7 +110,20 @@ describe("run summaries across modes", () => {
     expect(summary.mode).toBe("Consensus");
     expect(summary.verdict).toBeNull();
     expect(summary.confidence).toBeNull();
+    expect(summary.confidenceKind).toBeNull();
     expect(summary.costUsd).toBe(0);
+  });
+
+  it("explains a split consensus result with the final stance counts", () => {
+    expect(
+      consensusStanceBreakdown([
+        { stance: "strongly_agree" },
+        { stance: "agree" },
+        { stance: "agree" },
+        { stance: "neutral" },
+        { stance: "disagree" }
+      ])
+    ).toBe("3 agree · 1 neutral · 1 disagree");
   });
 
   it("keeps a failed advisory run labeled and includes its saved reason", () => {
