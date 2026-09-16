@@ -151,7 +151,7 @@ export function RunSurface({ record }: { record: DebateRecord }) {
 
       <div className="run-layout">
         <div className="stack">
-          {tab === "floor" ? <DebateFloor state={state} grouped={grouped} /> : null}
+          {tab === "floor" ? <><RoleBriefs state={state} /><DebateFloor state={state} grouped={grouped} /></> : null}
           {tab === "verdict" ? <VerdictTab state={state} record={record} /> : null}
           {tab === "evidence" ? <EvidenceTab sources={state.sources} /> : null}
           {tab === "graph" ? <GraphTab state={state} /> : null}
@@ -300,6 +300,38 @@ function Tab({
 }
 
 /* ------------------------------ Debate floor ------------------------------ */
+
+function RoleBriefs({ state }: { state: RunViewState }) {
+  if (!state.scouts.length || state.fallbacks.scouts) return null;
+
+  return (
+    <details className="card card-pad">
+      <summary className="card-title" style={{ cursor: "pointer" }}>Role briefs</summary>
+      <p className="small mt10">
+        Starting perspectives used to set up the debate: benefits, risks, and evidence to examine.
+      </p>
+      <div className="mt14">
+        {state.scouts.map((scout) => {
+          const name = scout.side === "neutral"
+            ? state.teams?.judge.name ?? scout.name
+            : scout.name;
+          const role = scout.side === "pro" ? "Arguing for" : scout.side === "con" ? "Arguing against" : "Judge";
+          const tone = scout.side === "pro" ? "pro" : scout.side === "con" ? "con" : "judge";
+          return (
+            <article className="ins-row" key={scout.id} style={{ display: "block" }}>
+              <div className="row gap8 wrap">
+                <strong>{name}</strong>
+                <span className={`chip ${tone}`}>{role}</span>
+              </div>
+              <p className="meta mt6">{scout.lens}</p>
+              <p className="small mt6">{scout.thesis}</p>
+            </article>
+          );
+        })}
+      </div>
+    </details>
+  );
+}
 
 function DebateFloor({
   state,
@@ -1005,26 +1037,7 @@ function Inspector({
         </div>
       ) : null}
 
-      {state.scouts.length > 0 && !state.fallbacks.scouts ? (
-        <div className="card card-pad">
-          <div className="card-title">Opening positions</div>
-          <p className="small mt10">Staked out before any model saw another&apos;s work.</p>
-          <div className="mt14">
-            {state.scouts.map((scout) => (
-              <div className="ins-row" key={scout.id} style={{ display: "block" }}>
-                <div className="row gap6 wrap">
-                  <span className={`chip ${scout.side === "pro" ? "pro" : scout.side === "con" ? "con" : "judge"}`}>
-                    <span className="dot" />
-                    {scout.side}
-                  </span>
-                  <span className="turn-role">{scout.lens}</span>
-                </div>
-                <p className="small mt6">{scout.thesis}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
+
     </aside>
   );
 }
