@@ -19,13 +19,22 @@ export function neutralizeCoreBranding(source) {
     .replace(/\bFrog\b/g, "Debater");
 }
 
+// Core 0.4.0 validates this backup before calling the summary model. A
+// participant answer has no length cap, but the summary permits only 400 chars.
+export function patchConsensusFallback(source) {
+  return source.replace(
+    'finalAnswer: finalRound.positions[0]?.answer ?? "No answer was produced.",',
+    'finalAnswer: "Summary unavailable. Review the individual positions for the panel’s answers.",',
+  );
+}
+
 async function patch(directory) {
   for (const entry of await readdir(directory, { withFileTypes: true })) {
     const filename = path.join(directory, entry.name);
     if (entry.isDirectory()) await patch(filename);
     else if (entry.name.endsWith(".js")) {
       const original = await readFile(filename, "utf8");
-      const updated = neutralizeCoreBranding(original);
+      const updated = patchConsensusFallback(neutralizeCoreBranding(original));
       if (updated !== original) await writeFile(filename, updated);
     }
   }
