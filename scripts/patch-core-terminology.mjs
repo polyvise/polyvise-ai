@@ -28,13 +28,21 @@ export function patchConsensusFallback(source) {
   );
 }
 
+// Length is presentation guidance, not a reason to discard a valid analysis.
+export function patchConsensusSummarySchema(source) {
+  return source.replace(
+    /((?:var|const) consensusSummaryOutputSchema = [\s\S]*?\n\}\);)/g,
+    (schema) => schema.replace(/\.max\((?:120|400)\)/g, ""),
+  );
+}
+
 async function patch(directory) {
   for (const entry of await readdir(directory, { withFileTypes: true })) {
     const filename = path.join(directory, entry.name);
     if (entry.isDirectory()) await patch(filename);
     else if (entry.name.endsWith(".js")) {
       const original = await readFile(filename, "utf8");
-      const updated = patchConsensusFallback(neutralizeCoreBranding(original));
+      const updated = patchConsensusSummarySchema(patchConsensusFallback(neutralizeCoreBranding(original)));
       if (updated !== original) await writeFile(filename, updated);
     }
   }
