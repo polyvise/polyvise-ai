@@ -15,6 +15,17 @@ it("adds naming guidance to fresh generation requests while preserving routing a
   expect(prompt.rules).toEqual(["Return JSON"]);
   expect(prompt.polyviseParticipantNaming).toContain("supporting debater");
   expect(prompt.polyviseParticipantNaming).toContain("Do not invent animal mascots");
+  expect(prompt.responseLengthGuidance).toContain("1,200 words");
+  expect(prompt.responseLengthGuidance).toContain("150 words");
+  expect(prompt.responseLengthGuidance).toContain("200 words");
   expect(wrapped.modelForRole("judge")).toBe("selected-model");
   expect(provider.modelForRole).toHaveBeenCalledWith("judge");
+});
+
+it.each(["stance scout", "pro advocate opening", "consensus agent", "consensus summary", "panel economist", "panel chair"])("adds word limits to plain-text prompts for %s", async (role) => {
+  const generateStructured = vi.fn().mockResolvedValue({ data: {}, snapshot: {} });
+  const wrapped = withPolyviseTerminology({ name: "test", configured: true, modelForRole: () => "model", generateStructured } as LlmProvider);
+  await wrapped.generateStructured({ role, schemaName: "test", prompt: "Answer the question." });
+  expect(generateStructured.mock.calls[0][0].prompt).toContain("Response word limits:");
+  expect(generateStructured.mock.calls[0][0].prompt).toContain("never truncate");
 });
