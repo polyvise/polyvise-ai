@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { getDb } from "./db/client";
 import { debateRecords, userFeedback } from "./db/schema";
 import type { UserFeedback } from "@polyvise/core/debate/types";
@@ -6,6 +6,7 @@ import type { PolyviseRecord } from "@/lib/run-record";
 
 export interface DebateRepository {
   save(debate: PolyviseRecord): Promise<void>;
+  saveIfUnchanged(debate: PolyviseRecord, updatedAt: string): Promise<boolean>;
   get(id: string): Promise<PolyviseRecord | null>;
   list(): Promise<PolyviseRecord[]>;
   listAll(): Promise<PolyviseRecord[]>;
@@ -43,6 +44,12 @@ export class MemoryDebateRepository implements DebateRepository {
 
   constructor(state = getMemoryRepositoryState()) {
     this.state = state;
+  }
+
+  async saveIfUnchanged(debate: PolyviseRecord, updatedAt: string): Promise<boolean> {
+    if (this.state.debates.get(debate.id)?.updatedAt !== updatedAt) return false;
+    this.state.debates.set(debate.id, debate);
+    return true;
   }
 
   async save(debate: PolyviseRecord): Promise<void> {
@@ -83,6 +90,14 @@ export class MemoryFeedbackRepository implements FeedbackRepository {
 }
 
 export class PostgresDebateRepository implements DebateRepository {
+  async saveIfUnchanged(debate: PolyviseRecord, updatedAt: string): Promise<boolean> {
+    const rows = await getDb().update(debateRecords)
+      .set({ record: debate, updatedAt: new Date(debate.updatedAt) })
+      .where(and(eq(debateRecords.id, debate.id), sql`${debateRecords.record}->>'updatedAt' = ${updatedAt}`))
+      .returning({ id: debateRecords.id });
+    return rows.length === 1;
+  }
+
   async save(debate: PolyviseRecord): Promise<void> {
     const now = new Date(debate.updatedAt);
     await getDb()
@@ -193,6 +208,22 @@ export class FirestoreDebateRepository implements DebateRepository {
     this.collection = collection;
   }
 
+  async saveIfUnchanged(debate: PolyviseRecord, updatedAt: string): Promise<boolean> {
+    const path = `documents/${this.collection}/${encodeURIComponent(debate.id)}`;
+    const current = await this.request(path, { method: "GET", allowNotFound: true });
+    if (!current || parseFirestoreDebate(current)?.updatedAt !== updatedAt || typeof current.updateTime !== "string") return false;
+    const query = new URLSearchParams({ "currentDocument.updateTime": current.updateTime });
+    const saved = await this.request(`${path}?${query}`, {
+      method: "PATCH", allowConflict: true,
+      body: JSON.stringify({ fields: {
+        recordJson: { stringValue: JSON.stringify(debate) },
+        createdAt: { timestampValue: debate.createdAt },
+        updatedAt: { timestampValue: debate.updatedAt }
+      } })
+    });
+    return saved !== null;
+  }
+
   async save(debate: PolyviseRecord): Promise<void> {
     await this.request(`documents/${this.collection}/${encodeURIComponent(debate.id)}`, {
       method: "PATCH",
@@ -275,13 +306,14 @@ export class FirestoreDebateRepository implements DebateRepository {
 
   private async request(
     path: string,
-    options: RequestInit & { allowNotFound?: boolean }
+    options: RequestInit & { allowNotFound?: boolean; allowConflict?: boolean }
   ): Promise<Record<string, unknown> | null> {
     const token = await getFirestoreAccessToken();
     const response = await fetch(
       `https://firestore.googleapis.com/v1/projects/${this.projectId}/databases/${this.databaseId}/${path}`,
       {
         ...options,
+        signal: options.signal ?? AbortSignal.timeout(15_000),
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -294,7 +326,9 @@ export class FirestoreDebateRepository implements DebateRepository {
       return null;
     }
 
-    const payload = (await response.json().catch(() => ({}))) as { error?: { message?: string } };
+    if (options.allowConflict && (response.status === 409 || response.status === 412)) return null;
+    const payload = (await response.json().catch(() => ({}))) as { error?: { message?: string; status?: string } };
+    if (options.allowConflict && payload.error?.status === "FAILED_PRECONDITION") return null;
 
     if (!response.ok) {
       throw new Error(payload.error?.message ?? `Firestore request failed with ${response.status}.`);
@@ -443,6 +477,7 @@ async function getFirestoreAccessToken(): Promise<string> {
   const response = await fetch(
     "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token",
     {
+      signal: AbortSignal.timeout(5_000),
       headers: {
         "Metadata-Flavor": "Google"
       }
@@ -470,13 +505,14 @@ async function firestoreRequest(
   projectId: string,
   databaseId: string,
   path: string,
-  options: RequestInit & { allowNotFound?: boolean }
+  options: RequestInit & { allowNotFound?: boolean; allowConflict?: boolean }
 ): Promise<Record<string, unknown> | null> {
   const token = await getFirestoreAccessToken();
   const response = await fetch(
     `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/${path}`,
     {
       ...options,
+      signal: options.signal ?? AbortSignal.timeout(15_000),
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",

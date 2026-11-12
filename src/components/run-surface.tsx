@@ -4,6 +4,9 @@ import Link from "next/link";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { RunRetry } from "./run-retry";
+import { useRunRecovery } from "@/lib/use-run-recovery";
+import { asDebateRecord, type RecoverableDebateRecord } from "@/lib/run-record";
 import { ResultPerspectives } from "@/components/result-perspectives";
 import { RunQualityNote } from "@/components/run-quality-note";
 import { RunDownload } from "@/components/run-download";
@@ -39,22 +42,6 @@ import type {
 
 type TabId = "floor" | "verdict" | "evidence" | "graph" | "telemetry";
 
-const eventKinds: DebateLiveEvent["kind"][] = [
-  "stage",
-  "framed",
-  "scouts",
-  "teams",
-  "sources",
-  "claims",
-  "argument_map",
-  "turns",
-  "scorecard",
-  "summary",
-  "model_snapshot",
-  "complete",
-  "error"
-];
-
 const stages: { id: DebateStatus; label: string }[] = [
   { id: "framing", label: "Framing" },
   { id: "researching", label: "Research" },
@@ -63,54 +50,19 @@ const stages: { id: DebateStatus; label: string }[] = [
   { id: "complete", label: "Verdict" }
 ];
 
-export function RunSurface({ record }: { record: DebateRecord }) {
+export function RunSurface({ record }: { record: RecoverableDebateRecord }) {
   const router = useRouter();
   const [state, dispatch] = useReducer(runViewReducer, record, initialStateFromRecord);
   // A finished run opens on its verdict; one still in flight opens on the floor.
   const [tab, setTab] = useState<TabId>(record.status === "complete" ? "verdict" : "floor");
-  const eventSourceRef = useRef<EventSource | null>(null);
-  const recordStamp = record.updatedAt;
-
-  // Re-seed from the server record whenever it changes underneath us (after a
-  // router.refresh() once the run lands, or after a follow-up is answered).
-  useEffect(() => {
-    dispatch({ type: "hydrate", record });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recordStamp]);
-
-  const isTerminal = record.status === "complete" || record.status === "failed";
-
-  useEffect(() => {
-    if (isTerminal) return;
-
-    const source = new EventSource(`/api/debates/${record.id}/events`);
-    eventSourceRef.current = source;
-
-    for (const kind of eventKinds) {
-      source.addEventListener(kind, (message) => {
-        try {
-          dispatch({ type: "event", event: JSON.parse((message as MessageEvent).data) as DebateLiveEvent });
-        } catch {
-          // ignore malformed events
-        }
-      });
+  const refreshed = useRef(false);
+  const recovery = useRunRecovery(record, {
+    onEvent: event => dispatch({ type: "event", event: event as DebateLiveEvent }),
+    onRecord: saved => {
+      dispatch({ type: "hydrate", record: asDebateRecord(saved) });
+      if (saved.latestRun && !refreshed.current) { refreshed.current = true; router.refresh(); }
     }
-
-    const finish = () => {
-      source.close();
-      eventSourceRef.current = null;
-      router.refresh();
-    };
-
-    source.addEventListener("complete", finish);
-    source.addEventListener("closed", finish);
-    source.addEventListener("error", finish);
-
-    return () => {
-      source.close();
-      eventSourceRef.current = null;
-    };
-  }, [record.id, isTerminal, router]);
+  });
 
   // The engine records the shape it ran from core 0.3.4 on; older runs only
   // reveal it through the lineup.
@@ -128,10 +80,18 @@ export function RunSurface({ record }: { record: DebateRecord }) {
     <section className="page">
       <RunHeader
         state={state}
-        record={record}
+        record={asDebateRecord(recovery.record)}
         councilSize={councilSize}
         totalCost={totalCost}
       />
+
+      {(state.status === "failed" || state.status === "partial") ? (
+        <section className="card card-pad mt24" role="alert">
+          <h2 className="card-title">This run stopped before it could finish</h2>
+          <p className="small mt10">{state.errorMessage ?? "The current step could not finish."}</p>
+          <RunRetry {...recovery} />
+        </section>
+      ) : null}
 
       {state.status === "complete" && tab !== "verdict" ? (
         <div className="verdict-ready" role="status"><div><strong>Your verdict is ready.</strong><span>See the recommendation, the tradeoffs and what would change the result.</span></div><button type="button" className="btn btn-primary btn-sm" onClick={() => setTab("verdict")}>Read the verdict →</button></div>
@@ -145,14 +105,10 @@ export function RunSurface({ record }: { record: DebateRecord }) {
         <Tab id="telemetry" current={tab} onSelect={setTab} label="Telemetry" count={calls.length} />
       </div>
 
-      {state.errorMessage ? (
-        <Callout tone="alert" title="The run failed" body={state.errorMessage} className="mt14" />
-      ) : null}
-
       <div className="run-layout">
         <div className="stack">
           {tab === "floor" ? <><RoleBriefs state={state} /><DebateFloor state={state} grouped={grouped} /></> : null}
-          {tab === "verdict" ? <VerdictTab state={state} record={record} /> : null}
+          {tab === "verdict" ? <VerdictTab state={state} record={asDebateRecord(recovery.record)} /> : null}
           {tab === "evidence" ? <EvidenceTab sources={state.sources} /> : null}
           {tab === "graph" ? <GraphTab state={state} /> : null}
           {tab === "telemetry" ? <TelemetryTab calls={calls} totalCost={totalCost} /> : null}
@@ -178,7 +134,7 @@ function RunHeader({
   totalCost: number;
 }) {
   const startedAt = record.latestRun?.startedAt ?? record.createdAt;
-  const completedAt = record.latestRun?.completedAt;
+  const completedAt = record.latestRun?.completedAt ?? (state.done ? record.updatedAt : undefined);
 
   const statusTone = state.status === "failed" ? "alert" : state.status === "complete" ? "pro" : "neutral";
 
@@ -214,7 +170,7 @@ function RunHeader({
       ) : null}
 
       <div className="row gap10 wrap mt14"><RunDownload record={record} /></div>
-      <Stepper status={state.status} />
+      <Stepper status={state.status} lastWorkingStatus={state.lastWorkingStatus} />
     </div>
   );
 }
@@ -249,10 +205,10 @@ function Elapsed({
   );
 }
 
-function Stepper({ status }: { status: DebateStatus }) {
-  const currentIndex = stages.findIndex((stage) => stage.id === status);
+function Stepper({ status, lastWorkingStatus }: { status: DebateStatus; lastWorkingStatus?: DebateStatus }) {
+  const currentIndex = stages.findIndex((stage) => stage.id === (status === "failed" || status === "partial" ? lastWorkingStatus : status));
   const isComplete = status === "complete";
-  const isFailed = status === "failed";
+  const isFailed = status === "failed" || status === "partial";
 
   return (
     <div className="stepper">
@@ -678,6 +634,7 @@ function Followups({ record }: { record: DebateRecord }) {
     setError(null);
     try {
       const response = await fetch(`/api/debates/${record.id}/followups`, {
+        signal: AbortSignal.timeout(180_000),
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question })
@@ -689,7 +646,7 @@ function Followups({ record }: { record: DebateRecord }) {
       setQuestion("");
       router.refresh();
     } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : "Unable to answer the follow-up.");
+      setError((caughtError instanceof Error || caughtError instanceof DOMException) ? caughtError.name === "TimeoutError" ? "The follow-up timed out. Your question is saved here; you can try again." : caughtError.message : "Unable to answer the follow-up.");
     } finally {
       setIsLoading(false);
     }

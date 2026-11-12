@@ -76,6 +76,7 @@ export function Composer({
     setError(null);
     try {
       const response = await fetch("/api/debates", {
+        signal: AbortSignal.timeout(20_000),
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
@@ -108,8 +109,8 @@ export function Composer({
       router.push(`/runs/${payload.debate.id}` as Route);
     } catch (caught) {
       setError(
-        caught instanceof Error
-          ? caught.message
+        (caught instanceof Error || caught instanceof DOMException)
+          ? caught.name === "TimeoutError" ? "The connection timed out while starting the run. Your question is still here. Try again." : caught.message
           : "Unable to start the run. Please try again.",
       );
       submitting.current = false;

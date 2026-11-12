@@ -1,3 +1,6 @@
+import type { DebateLiveEvent } from "@polyvise/core/debate/types";
+import type { ConsensusLiveEvent } from "@polyvise/core/consensus/engine";
+import type { AdvisoryPanelLiveEvent } from "@polyvise/core/panel/engine";
 import type { DebateRecord, DebateRun, DebateMode } from "@polyvise/core/debate/types";
 import type { AdvisoryPanelRunEnvelope, ConsensusRunEnvelope } from "@polyvise/core/runs/types";
 
@@ -9,6 +12,9 @@ import type { AdvisoryPanelRunEnvelope, ConsensusRunEnvelope } from "@polyvise/c
  * them to gain an envelope would buy nothing. Consensus and the advisory panel
  * store the envelope, because they have no flat equivalent.
  */
+export type RunLiveEvent = DebateLiveEvent | ConsensusLiveEvent | AdvisoryPanelLiveEvent;
+export type RecoverableDebateRecord = DebateRecord & Pick<PolyviseRecord, "recovery" | "liveEvents" | "failureReason">;
+
 export type StoredRun = DebateRun | ConsensusRunEnvelope | AdvisoryPanelRunEnvelope;
 
 /**
@@ -22,6 +28,8 @@ export type StoredRun = DebateRun | ConsensusRunEnvelope | AdvisoryPanelRunEnvel
  */
 export type PolyviseRecord = Omit<DebateRecord, "latestRun"> & {
   latestRun?: StoredRun;
+  recovery?: { attempt: number; available: boolean };
+  liveEvents?: RunLiveEvent[];
   /** A concise, safe explanation retained when a run ends before producing a result. */
   failureReason?: string;
   failedStep?: string;
@@ -82,7 +90,7 @@ export function asDebateRun(run: StoredRun): DebateRun | null {
  * A record narrowed to the hybrid council, for the surfaces and summaries that
  * only know how to read a debate.
  */
-export function asDebateRecord(record: PolyviseRecord): DebateRecord {
+export function asDebateRecord(record: PolyviseRecord): RecoverableDebateRecord {
   const run = record.latestRun ? asDebateRun(record.latestRun) : null;
   return { ...record, ...(run ? { latestRun: run } : { latestRun: undefined }) };
 }

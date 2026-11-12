@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { Route } from "next";
 import { Check, TriangleAlert } from "lucide-react";
 import type { DebateStatus } from "@polyvise/core/debate/types";
 import type { PolyviseRecord } from "@/lib/run-record";
+import { RunRetry } from "./run-retry";
+import { useRunRecovery } from "@/lib/use-run-recovery";
 import { modeGuide } from "@/lib/mode-guide";
 
 /** In-flight consensus and panel runs must not masquerade as a debate. */
@@ -20,7 +22,7 @@ export function PendingModeRun({ record }: { record: PolyviseRecord }) {
   const [progress, setProgress] = useState({ participants: 0, sources: 0, rounds: 0, advice: 0 });
   const adviceIds = useRef(new Set<string>());
   const guide = modeGuide[record.mode];
-  const failed = status === "failed";
+  const failed = status === "failed" || status === "partial";
   const stages: Partial<Record<DebateStatus, string>> = {
     queued: "Preparing your thinking room",
     framing: "Framing your question",
@@ -39,113 +41,44 @@ export function PendingModeRun({ record }: { record: PolyviseRecord }) {
   const activity = activityFor(status, record.mode, progress);
   const activeStep = stepForStatus(failed ? lastWorkingStatus : status);
 
-  useEffect(() => {
-    if (record.status === "failed") return;
-
-    let source: EventSource | null = null;
-    let refreshRequested = false;
-    let finalizing = false;
-    let cancelled = false;
-
-    const readEvent = (event: Event): Record<string, unknown> | null => {
-      try {
-        return JSON.parse((event as MessageEvent).data) as Record<string, unknown>;
-      } catch {
-        return null;
+  const refreshed = useRef(false);
+  const recovery = useRunRecovery(record, {
+    onEvent: event => {
+      if (event.kind === "stage") {
+        setStatus(event.status);
+        if (!["complete", "failed", "partial"].includes(event.status)) setLastWorkingStatus(event.status);
       }
-    };
-
-    const refreshWhenStored = async () => {
-      if (refreshRequested || cancelled) return;
-      try {
-        const response = await fetch(`/api/debates/${record.id}`, { cache: "no-store" });
-        if (!response.ok) return;
-        const payload = (await response.json()) as { debate?: PolyviseRecord };
-        const latest = payload.debate;
-        if (latest?.latestRun || latest?.status === "failed") {
-          refreshRequested = true;
-          source?.close();
-          router.refresh();
-        }
-      } catch {
-        /* The event stream remains primary; the next poll will retry. */
+      if (event.kind === "agents") setProgress(value => ({ ...value, participants: event.agents.length }));
+      if (event.kind === "lenses") setProgress(value => ({ ...value, participants: event.lenses.length }));
+      if (event.kind === "sources") setProgress(value => ({ ...value, sources: event.sources.length }));
+      if (event.kind === "round") setProgress(value => ({ ...value, rounds: Math.max(value.rounds, event.round.round) }));
+      if (event.kind === "advice") {
+        adviceIds.current.add(event.advice.lensId);
+        setProgress(value => ({ ...value, advice: adviceIds.current.size }));
       }
-    };
-
-    const poll = window.setInterval(() => void refreshWhenStored(), 1200);
-
-    if (record.status !== "complete") {
-      source = new EventSource(`/api/debates/${record.id}/events`);
-      source.addEventListener("open", () => setConnection(""));
-      source.addEventListener("stage", (event) => {
-        const next = readEvent(event)?.status;
-        if (typeof next !== "string") return;
-        const nextStatus = next as DebateStatus;
-        setStatus(nextStatus);
-        if (nextStatus !== "complete" && nextStatus !== "failed") {
-          setLastWorkingStatus(nextStatus);
+      if (event.kind === "complete") { setStatus("complete"); setConnection("The analysis is complete. Loading the saved result…"); }
+      if (event.kind === "error") { setStatus("failed"); setConnection(""); }
+    },
+    onRecord: saved => {
+      setStatus(saved.status);
+      setConnection("");
+      if (!["complete", "failed", "partial"].includes(saved.status)) setLastWorkingStatus(saved.status);
+      const lastStage = [...(saved.liveEvents ?? [])].reverse().find(event => event.kind === "stage" && !["complete", "failed", "partial"].includes(event.status));
+      if (lastStage?.kind === "stage") setLastWorkingStatus(lastStage.status);
+      for (const event of saved.liveEvents ?? []) {
+        if (event.kind === "agents") setProgress(value => ({ ...value, participants: event.agents.length }));
+        if (event.kind === "lenses") setProgress(value => ({ ...value, participants: event.lenses.length }));
+        if (event.kind === "sources") setProgress(value => ({ ...value, sources: event.sources.length }));
+        if (event.kind === "round") setProgress(value => ({ ...value, rounds: Math.max(value.rounds, event.round.round) }));
+        if (event.kind === "advice") {
+          adviceIds.current.add(event.advice.lensId);
+          setProgress(value => ({ ...value, advice: adviceIds.current.size }));
         }
-        if (nextStatus === "complete") {
-          setConnection("The analysis is complete. Saving the result…");
-          void refreshWhenStored();
-        }
-      });
-      source.addEventListener("agents", (event) => {
-        const agents = readEvent(event)?.agents;
-        if (Array.isArray(agents)) setProgress((value) => ({ ...value, participants: agents.length }));
-      });
-      source.addEventListener("lenses", (event) => {
-        const lenses = readEvent(event)?.lenses;
-        if (Array.isArray(lenses)) setProgress((value) => ({ ...value, participants: lenses.length }));
-      });
-      source.addEventListener("sources", (event) => {
-        const sources = readEvent(event)?.sources;
-        if (Array.isArray(sources)) setProgress((value) => ({ ...value, sources: sources.length }));
-      });
-      source.addEventListener("round", (event) => {
-        const round = readEvent(event)?.round;
-        if (round && typeof round === "object" && "round" in round && typeof round.round === "number") {
-          const roundNumber = round.round;
-          setProgress((value) => ({ ...value, rounds: Math.max(value.rounds, roundNumber) }));
-        }
-      });
-      source.addEventListener("advice", (event) => {
-        const advice = readEvent(event)?.advice;
-        if (advice && typeof advice === "object" && "lensId" in advice && typeof advice.lensId === "string") {
-          adviceIds.current.add(advice.lensId);
-          setProgress((value) => ({ ...value, advice: adviceIds.current.size }));
-        }
-      });
-      const finish = () => {
-        if (finalizing) return;
-        finalizing = true;
-        source?.close();
-        setStatus("complete");
-        setConnection("The analysis is complete. Saving the result…");
-        void refreshWhenStored();
-      };
-      source.addEventListener("complete", finish);
-      source.addEventListener("closed", finish);
-      source.addEventListener("error", (event) => {
-        if (event instanceof MessageEvent && event.data) {
-          setStatus("failed");
-          source?.close();
-          void refreshWhenStored();
-        } else {
-          setConnection("Connection interrupted. Reconnecting to your run…");
-        }
-      });
-    } else {
-      setConnection("The analysis is complete. Saving the result…");
-      void refreshWhenStored();
+      }
+      if (saved.latestRun && !refreshed.current) { refreshed.current = true; router.refresh(); }
     }
+  });
 
-    return () => {
-      cancelled = true;
-      window.clearInterval(poll);
-      source?.close();
-    };
-  }, [record.id, record.status, router]);
   return (
     <section className="page">
       <div className="row gap8">
@@ -162,9 +95,10 @@ export function PendingModeRun({ record }: { record: PolyviseRecord }) {
         </div>
         <p className="small mt14">
           {failed
-            ? record.failureReason ?? "The run failed, but no diagnostic was recorded. Try again with another model."
+            ? recovery.record.failureReason ?? "The current step could not finish."
             : activity}
         </p>
+        {failed ? <RunRetry {...recovery} /> : null}
         {connection && <p className="small mt10">{connection}</p>}
       </div>
       <div className="grid g3 mt24">

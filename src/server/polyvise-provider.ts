@@ -1,3 +1,4 @@
+import type { DebateRuntimeConfig } from "@polyvise/core/debate/config";
 import type { LlmProvider, LlmRequest } from "@polyvise/core/providers/llm";
 
 const terminologyRule = "This is Polyvise. Refer to debate participants using their supplied names, supporting debater, opposing debater, or neutral judge. Do not invent animal mascots or color-based nicknames for participants. This naming rule does not change the subject of the debate or the wording of cited source material.";
@@ -21,5 +22,14 @@ export function withPolyviseTerminology(provider: LlmProvider): LlmProvider {
       }
       return provider.generateStructured<T>({ ...request, prompt });
     },
+  };
+}
+
+/** One bounded shared budget across transport, format fallback and validation. */
+export function polyviseRuntimeConfig(config: DebateRuntimeConfig): DebateRuntimeConfig {
+  return { ...config,
+    llmTimeoutMs: Math.min(config.llmTimeoutMs, 45_000),
+    llmMaxAttempts: Math.min(config.llmMaxAttempts, 3),
+    apiRetryBaseDelayMs: Math.min(5000, Math.max(1000, config.apiRetryBaseDelayMs))
   };
 }

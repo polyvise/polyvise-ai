@@ -98,6 +98,17 @@ describe("mode request contracts", () => {
 });
 
 describe("composer interactions", () => {
+  it("shows a recoverable timeout without automatically repeating the create request", async () => {
+    const fetcher = vi.fn().mockRejectedValue(new DOMException("Timed out", "TimeoutError"));
+    vi.stubGlobal("fetch", fetcher);
+    await act(async () => root.render(<Composer />));
+    await fill("#subject", "Should we change the work week?");
+    await act(async () => host.querySelector("form")!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(host.textContent).toContain("Your question is still here");
+    expect(host.querySelector<HTMLButtonElement>('button[type="submit"]')?.disabled).toBe(false);
+  });
+
   it("opens and brings model settings into view even when already open", async () => {
     const scroll = vi.fn();
     const original = HTMLElement.prototype.scrollIntoView;

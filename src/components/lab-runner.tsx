@@ -45,6 +45,7 @@ export function LabRunner({ defaultModels, availableModels }: { defaultModels: s
 
     try {
       const response = await fetch("/api/lab", {
+        signal: AbortSignal.timeout(180_000),
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt, models: selected })
@@ -55,7 +56,7 @@ export function LabRunner({ defaultModels, availableModels }: { defaultModels: s
       }
       setAnswers(payload.answers);
     } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : "Unable to run the lab.");
+      setError((caughtError instanceof Error || caughtError instanceof DOMException) ? caughtError.name === "TimeoutError" ? "The model comparison timed out. You can run it again." : caughtError.message : "Unable to run the lab.");
     } finally {
       setIsRunning(false);
     }

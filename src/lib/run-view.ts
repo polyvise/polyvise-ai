@@ -1,3 +1,4 @@
+import type { RecoverableDebateRecord } from "./run-record";
 import { normalizeDebateOutput } from "./debate-terminology";
 import type {
   ArgumentEdge,
@@ -52,6 +53,7 @@ export type RunViewState = {
   debateId: string;
   subject: string;
   status: DebateStatus;
+  lastWorkingStatus?: DebateStatus;
   resolution?: string;
   topicKind?: TopicKind;
   highStakes: HighStakesNotice | null;
@@ -79,7 +81,7 @@ export type RunViewState = {
 
 export type RunViewAction =
   | { type: "event"; event: DebateLiveEvent }
-  | { type: "hydrate"; record: DebateRecord };
+  | { type: "hydrate"; record: RecoverableDebateRecord };
 
 /** Role fragments the engine uses when asking a model to produce each step. */
 const roundRoleFragments: Array<[DebateRound, string]> = [
@@ -193,16 +195,17 @@ function fallbacksFromRun(run: DebateRun | undefined): {
   return { fallbacks, turnFailuresByRound };
 }
 
-export function initialStateFromRecord(record: DebateRecord): RunViewState {
+export function initialStateFromRecord(record: RecoverableDebateRecord): RunViewState {
   const run = normalizeDebateOutput(record.latestRun);
   const snapshots = run?.modelSnapshots ?? [];
   const { fallbacks, turnFailuresByRound } =
     fallbacksFromRun(run) ?? deriveFallbacks(snapshots);
 
-  return {
+  let state: RunViewState = {
     debateId: record.id,
     subject: record.subject,
     status: record.status,
+    lastWorkingStatus: record.status,
     resolution: record.resolution,
     topicKind: record.topicKind,
     highStakes: record.highStakes,
@@ -218,9 +221,11 @@ export function initialStateFromRecord(record: DebateRecord): RunViewState {
     snapshots,
     fallbacks,
     turnFailuresByRound,
-    errorMessage: null,
-    done: record.status === "complete" || record.status === "failed"
+    errorMessage: record.failureReason ?? null,
+    done: ["complete", "failed", "partial"].includes(record.status)
   };
+  if (!run) for (const event of record.liveEvents ?? []) state = runViewReducer(state, { type: "event", event: event as DebateLiveEvent });
+  return { ...state, status: record.status, done: ["complete", "failed", "partial"].includes(record.status), errorMessage: record.failureReason ?? null };
 }
 
 function mergeFallback(
@@ -234,15 +239,16 @@ function mergeFallback(
 
 export function runViewReducer(state: RunViewState, action: RunViewAction): RunViewState {
   if (action.type === "hydrate") {
-    // The persisted record is authoritative once the run is over, but it has
-    // no memory of a stream-level error, so that message is carried across.
-    return { ...initialStateFromRecord(action.record), errorMessage: state.errorMessage };
+    if (action.record.latestRun || action.record.id !== state.debateId) return initialStateFromRecord(action.record);
+    let next = state;
+    for (const event of action.record.liveEvents ?? []) next = runViewReducer(next, { type: "event", event: event as DebateLiveEvent });
+    return { ...next, status: action.record.status, done: ["complete", "failed", "partial"].includes(action.record.status), errorMessage: action.record.failureReason ?? null };
   }
 
   const event = normalizeDebateOutput(action.event);
   switch (event.kind) {
     case "stage":
-      return { ...state, status: event.status };
+      return { ...state, status: event.status, lastWorkingStatus: ["complete", "failed", "partial"].includes(event.status) ? state.lastWorkingStatus : event.status };
     case "framed":
       return {
         ...state,
@@ -274,7 +280,7 @@ export function runViewReducer(state: RunViewState, action: RunViewAction): RunV
       const withoutRound = state.turns.filter((turn) => turn.round !== event.round);
       return {
         ...state,
-        turns: event.placeholder ? withoutRound : [...withoutRound, ...event.turns],
+        turns: event.placeholder ? withoutRound : [...new Map([...state.turns, ...event.turns].map(turn => [turn.id, turn])).values()],
         turnFailuresByRound: event.placeholder
           ? { ...state.turnFailuresByRound, [event.round]: event.placeholder }
           : state.turnFailuresByRound,
@@ -294,7 +300,7 @@ export function runViewReducer(state: RunViewState, action: RunViewAction): RunV
         fallbacks: mergeFallback(state.fallbacks, "summary", event.placeholder)
       };
     case "model_snapshot":
-      return { ...state, snapshots: [...state.snapshots, event.snapshot] };
+      return { ...state, snapshots: [...new Map([...state.snapshots, event.snapshot].map(snapshot => [snapshot.id, snapshot])).values()] };
     case "complete":
       return { ...state, status: "complete", done: true };
     case "error":

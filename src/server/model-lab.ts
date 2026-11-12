@@ -1,3 +1,4 @@
+import { polyviseRuntimeConfig } from "./polyvise-provider";
 import { loadDebateRuntimeConfig } from "@polyvise/core/debate/config";
 import {
   LlmProviderFailure,
@@ -42,7 +43,7 @@ const answerSchema = {
  * with the same model under different labels.
  */
 function providerForModel(model: string) {
-  const base = loadDebateRuntimeConfig();
+  const base = polyviseRuntimeConfig(loadDebateRuntimeConfig());
   const config = {
     ...base,
     quickModel: model,

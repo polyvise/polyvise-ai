@@ -1,4 +1,5 @@
-import { withPolyviseTerminology } from "./polyvise-provider";
+import type { RunCheckpoint } from "@polyvise/core/runs/checkpoint";
+import { polyviseRuntimeConfig, withPolyviseTerminology } from "./polyvise-provider";
 import { normalizeDebateOutput } from "@/lib/debate-terminology";
 import { randomUUID } from "node:crypto";
 import { createDefaultLlmProvider, LlmProviderFailure } from "@polyvise/core/providers/llm";
@@ -16,12 +17,11 @@ import {
   productNotes,
   runHybridCouncilDebate
 } from "@polyvise/core/debate/engine";
-import { runConsensus, type ConsensusLiveEvent } from "@polyvise/core/consensus/engine";
-import { runAdvisoryPanel, type AdvisoryPanelLiveEvent } from "@polyvise/core/panel/engine";
+import { runConsensus } from "@polyvise/core/consensus/engine";
+import { runAdvisoryPanel } from "@polyvise/core/panel/engine";
 import { createDefaultDebateRepository, createDefaultFeedbackRepository } from "./repository";
-import { asDebateRun, type PolyviseRecord, type StoredRun } from "@/lib/run-record";
+import { asDebateRun, type PolyviseRecord, type StoredRun, type RunLiveEvent } from "@/lib/run-record";
 import type {
-  DebateLiveEvent,
   DebateRecord,
   DebateRequest,
   FollowupExchange,
@@ -34,14 +34,32 @@ import type {
  * in core because their shapes genuinely differ; the transport does not care,
  * and a subscriber narrows on `kind` as it always has.
  */
-export type RunLiveEvent = DebateLiveEvent | ConsensusLiveEvent | AdvisoryPanelLiveEvent;
+export type { RunLiveEvent } from "@/lib/run-record";
 
 const repository = createDefaultDebateRepository();
 const feedbackRepository = createDefaultFeedbackRepository();
 export const DEBATE_UNAVAILABLE_MESSAGE =
-  "The debate couldn't start right now. Please try again in a few minutes.";
+  "The run couldn't finish this step. Retry the failed step to continue.";
 export const DEBATE_JUDGE_UNAVAILABLE_MESSAGE =
-  "The judge couldn't finish this debate right now. Please try again in a few minutes.";
+  "The judge couldn't finish this step. Retry the failed step to continue.";
+
+type StoredRecord = PolyviseRecord & {
+  retryState?: {
+    request: DebateRequest;
+    config: DebateRuntimeConfig;
+    checkpoint?: RunCheckpoint;
+    events: RunLiveEvent[];
+    attempt: number;
+  };
+};
+
+function publicRecord(record: StoredRecord): PolyviseRecord {
+  const { retryState, ...publicFields } = record;
+  return normalizeDebateOutput({ ...publicFields,
+    recovery: { attempt: retryState?.attempt ?? 0, available: Boolean(retryState) },
+    ...(!record.latestRun && retryState ? { liveEvents: retryState.events } : {})
+  });
+}
 
 type Listener = (event: RunLiveEvent) => void;
 
@@ -49,6 +67,7 @@ class DebateEventBus {
   readonly buffer: RunLiveEvent[] = [];
   private listeners = new Set<Listener>();
   private terminal = false;
+  constructor(readonly attempt = 0) {}
 
   emit(event: RunLiveEvent): void {
     event = normalizeDebateOutput(event);
@@ -90,18 +109,10 @@ class DebateEventBus {
 
 const buses = new Map<string, DebateEventBus>();
 
-function getOrCreateBus(id: string): DebateEventBus {
-  let bus = buses.get(id);
-  if (!bus) {
-    bus = new DebateEventBus();
-    buses.set(id, bus);
-  }
-  return bus;
-}
-
 function scheduleBusCleanup(id: string, delayMs = 5 * 60 * 1000): void {
+  const bus = buses.get(id);
   setTimeout(() => {
-    buses.delete(id);
+    if (buses.get(id) === bus) buses.delete(id);
   }, delayMs).unref?.();
 }
 
@@ -131,7 +142,7 @@ function buildSeedRecord(input: DebateRequest): {
     followups: []
   };
 
-  const baseConfig = loadDebateRuntimeConfig();
+  const baseConfig = polyviseRuntimeConfig(loadDebateRuntimeConfig());
   const config: DebateRuntimeConfig = {
     ...baseConfig,
     // Multi-agent arrays need more output room than a short model-lab answer.
@@ -166,54 +177,90 @@ export interface StartDebateResult {
 }
 
 export async function startDebate(input: DebateRequest): Promise<StartDebateResult> {
-  const { record, request, config, framed } = buildSeedRecord(input);
-  await repository.save(record);
-  const bus = getOrCreateBus(record.id);
+  const { record, request, config } = buildSeedRecord(input);
+  const stored: StoredRecord = {
+    ...record, retryState: { request, config, events: [], attempt: 0 }
+  };
+  await repository.save(stored);
+  const completion = executeDebate(stored);
+  return { debate: publicRecord(stored), completion };
+}
+
+function nextUpdatedAt(previous: string): string {
+  return new Date(Math.max(Date.now(), Date.parse(previous) + 1)).toISOString();
+}
+
+export async function retryDebate(id: string, attempt: number): Promise<{ debate: PolyviseRecord; accepted: boolean } | null> {
+  const record = await repository.get(id) as StoredRecord | null;
+  if (!record) return null;
+  if (record.status === "complete") return { debate: publicRecord(record), accepted: true };
+  if (!record.retryState) return { debate: publicRecord(record), accepted: false };
+  const inactive = record.status === "failed" || record.status === "partial" || Date.now() - Date.parse(record.updatedAt) >= 5 * 60_000;
+  if (!inactive) return { debate: publicRecord(record), accepted: true };
+  if (record.retryState.attempt !== attempt) return { debate: publicRecord(record), accepted: false };
+  const resumed: StoredRecord = {
+    ...record, failureReason: undefined, failedStep: undefined, failedModel: undefined, status: "queued", updatedAt: nextUpdatedAt(record.updatedAt),
+    retryState: { ...record.retryState, attempt: attempt + 1 }
+  };
+  if (!await repository.saveIfUnchanged(resumed, record.updatedAt)) {
+    const current = await repository.get(id) as StoredRecord | null;
+    return current ? { debate: publicRecord(current), accepted: current.status !== "failed" } : null;
+  }
+  void executeDebate(resumed);
+  return { debate: publicRecord(resumed), accepted: true };
+}
+
+function executeDebate(seed: StoredRecord): Promise<PolyviseRecord> {
+  let record = seed;
+  const { request, config } = record.retryState!;
+  let checkpoint = record.retryState!.checkpoint;
+  let stage: DebateRecord["status"] = record.status;
+  const bus = new DebateEventBus(record.retryState!.attempt);
+  buses.set(record.id, bus);
+  const persist = async (status: DebateRecord["status"], latestRun = record.latestRun) => {
+    const next: StoredRecord = {
+      ...record, status, latestRun, updatedAt: nextUpdatedAt(record.updatedAt),
+      retryState: { ...record.retryState!, checkpoint, events: [...bus.buffer] }
+    };
+    if (!await repository.saveIfUnchanged(next, record.updatedAt)) {
+      throw new Error("This debate attempt was replaced by another request.");
+    }
+    record = next;
+    return publicRecord(record);
+  };
 
   const completion = (async (): Promise<PolyviseRecord> => {
     try {
-      const run = await runForMode(record.id, request, framed, config, (event) => bus.emit(event));
-      const completed: PolyviseRecord = {
-        ...record,
-        status: run.status,
-        latestRun: run,
-        updatedAt: new Date().toISOString()
-      };
-      await repository.save(completed);
+      const run = await runForMode(record.id, request, frameDebateRequest(request), config, (event) => {
+        if (event.kind === "complete" || (event.kind === "stage" && event.status === "complete")) return;
+        if (event.kind === "stage") stage = event.status;
+        bus.emit(event);
+      }, {
+        checkpoint,
+        onCheckpoint: async (value) => {
+          checkpoint = value;
+          await persist(stage);
+        }
+      });
+      const completed = await persist(run.status, run);
+      bus.emit({ kind: "stage", status: "complete" });
+      bus.emit({ kind: "complete", runId: run.id });
       scheduleBusCleanup(record.id);
       return completed;
     } catch (error) {
       const failedSnapshot = modelSnapshotFromError(error);
-      const lastStage = [...bus.buffer].reverse().find((event) => event.kind === "stage");
-      const failure = describeRunFailure(error, failedSnapshot, lastStage?.kind === "stage" ? lastStage.status : undefined, record.mode);
+      const failure = describeRunFailure(error, failedSnapshot, stage, record.mode);
+      record = { ...record, failureReason: failure.reason, failedStep: failure.step, failedModel: failedSnapshot?.model };
+      console.error("[polyvise.run.failed]", { runId: record.id, mode: record.mode, step: failure.step, reason: failure.reason });
       if (failedSnapshot) {
         bus.emit({ kind: "model_snapshot", snapshot: failedSnapshot });
       }
-      const hasStartedDebate = bus.buffer.some(
-        (event) => event.kind === "turns" || event.kind === "scorecard" || event.kind === "summary"
-      );
-      bus.emit({
-        kind: "error",
-        message: failure.reason
-      });
-      const failed: PolyviseRecord = {
-        ...record,
-        status: "failed",
-        failureReason: failure.reason,
-        failedStep: failure.step,
-        failedModel: failedSnapshot?.model,
-        updatedAt: new Date().toISOString()
-      };
-      await repository.save(failed);
-      console.error("[polyvise.run.failed]", {
-        runId: record.id,
-        mode: record.mode,
-        step: failure.step,
-        model: failedSnapshot?.model,
-        reason: failure.reason,
-        technicalReason: error instanceof Error ? error.message.slice(0, 1000) : "Unknown error"
-      });
-      scheduleBusCleanup(record.id);
+      try {
+        await persist("failed");
+      } finally {
+        bus.emit({ kind: "error", message: failure.reason });
+        scheduleBusCleanup(record.id);
+      }
       throw error;
     }
   })();
@@ -221,8 +268,9 @@ export async function startDebate(input: DebateRequest): Promise<StartDebateResu
   // Prevent unhandled rejection warnings when callers only consume via SSE.
   completion.catch(() => {});
 
-  return { debate: record, completion };
+  return completion;
 }
+
 
 /**
  * Runs whichever mode was asked for.
@@ -236,17 +284,18 @@ async function runForMode(
   request: DebateRequest,
   framed: ReturnType<typeof frameDebateRequest>,
   config: DebateRuntimeConfig,
-  emit: (event: RunLiveEvent) => void
+  emit: (event: RunLiveEvent) => void,
+  recovery: { checkpoint?: RunCheckpoint; onCheckpoint: (checkpoint: RunCheckpoint) => Promise<void> }
 ): Promise<StoredRun> {
   const provider = withPolyviseTerminology(createDefaultLlmProvider(config));
   switch (request.mode) {
     case "consensus":
-      return runConsensus(debateId, request, framed, { config, emit, provider });
+      return runConsensus(debateId, request, framed, { config, emit, provider, ...recovery });
     case "advisory_panel":
-      return runAdvisoryPanel(debateId, request, framed, { config, emit, provider });
+      return runAdvisoryPanel(debateId, request, framed, { config, emit, provider, ...recovery });
     case "hybrid_council":
     default:
-      return runHybridCouncilDebate(debateId, request, framed, { config, emit, provider });
+      return runHybridCouncilDebate(debateId, request, framed, { config, emit, provider, ...recovery, streamTurns: true });
   }
 }
 
@@ -279,7 +328,7 @@ function describeRunFailure(
       ? "The model provider is not configured."
       : raw;
   return {
-    reason: `${prefix} during ${step}.${timedOut ? " Try a faster model or try again later." : ` ${detail}`}`.slice(0, 500),
+    reason: `${prefix} during ${step}.${timedOut ? " Retry the failed step to continue." : ` ${detail}`}`.slice(0, 500),
     step
   };
 }
@@ -291,10 +340,11 @@ export async function createDebate(input: DebateRequest): Promise<PolyviseRecord
 
 export function subscribeToDebate(
   debateId: string,
-  listener: Listener
+  listener: Listener,
+  attempt?: number
 ): { unsubscribe: () => void; terminal: boolean } {
   const bus = buses.get(debateId);
-  if (!bus) {
+  if (!bus || (attempt !== undefined && bus.attempt !== attempt)) {
     return { unsubscribe: () => {}, terminal: true };
   }
   const unsubscribe = bus.subscribe(listener);
@@ -303,11 +353,11 @@ export function subscribeToDebate(
 
 export async function getDebate(id: string): Promise<PolyviseRecord | null> {
   const record = await repository.get(id);
-  return record ? normalizeDebateOutput(record) : null;
+  return record ? publicRecord(record) : null;
 }
 
 export async function listDebates(): Promise<PolyviseRecord[]> {
-  return normalizeDebateOutput(await repository.list());
+  return (await repository.list()).map(publicRecord);
 }
 
 export async function submitFeedback(input: {
@@ -368,7 +418,7 @@ async function answerFollowup(question: string, debate: PolyviseRecord): Promise
   };
 
   try {
-    const result = await withPolyviseTerminology(createDefaultLlmProvider()).generateStructured<unknown>({
+    const result = await withPolyviseTerminology(createDefaultLlmProvider(polyviseRuntimeConfig(loadDebateRuntimeConfig()))).generateStructured<unknown>({
       role: "follow-up answer",
       schemaName: "followupOutput",
       prompt: JSON.stringify(fallback)

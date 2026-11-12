@@ -122,11 +122,6 @@ it.each(["consensus", "advisory_panel"] as const)(
         );
         expect(host.textContent).toContain("1 of 4 advisors");
       }
-      await act(async () => stream.dispatchEvent(new Event("error")));
-      expect(stream.close).not.toHaveBeenCalled();
-      expect(host.textContent).toContain("Reconnecting");
-      await act(async () => stream.dispatchEvent(new Event("open")));
-      expect(host.textContent).not.toContain("Reconnecting");
       await act(async () =>
         stream.dispatchEvent(
           new MessageEvent("stage", {
@@ -136,9 +131,9 @@ it.each(["consensus", "advisory_panel"] as const)(
       );
       expect(host.textContent).toMatch(/Step 2\s*Complete/);
       expect(host.textContent).toContain("Step 3In progress");
-      await act(async () => stream.dispatchEvent(new MessageEvent("complete")));
+      await act(async () => stream.dispatchEvent(new Event("error")));
       expect(stream.close).toHaveBeenCalled();
-      expect(host.textContent).toContain("Finalizing your result");
+      expect(host.textContent).not.toContain("Finalizing your result");
       expect(host.textContent).not.toContain("Your result is ready");
       expect(router.refresh).not.toHaveBeenCalled();
       await act(async () => {
