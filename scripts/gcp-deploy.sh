@@ -18,7 +18,7 @@ gcloud builds submit \
   --substitutions "_IMAGE=$IMAGE" \
   --project "$PROJECT_ID"
 
-gcloud run deploy "$SERVICE" \
+REVISION="$(gcloud run deploy "$SERVICE" \
   --image "$IMAGE" \
   --region "$REGION" \
   --project "$PROJECT_ID" \
@@ -32,4 +32,10 @@ gcloud run deploy "$SERVICE" \
   --max-instances "${GCP_CLOUD_RUN_MAX_INSTANCES:-3}" \
   --timeout 300 \
   --update-env-vars "^|^NEXT_PUBLIC_SITE_URL=$SITE_URL|POLYVISE_REPOSITORY=${POLYVISE_REPOSITORY:-firestore}|FIRESTORE_PROJECT_ID=${FIRESTORE_PROJECT_ID:-$PROJECT_ID}|POLYVISE_FIRESTORE_DEBATE_COLLECTION=${POLYVISE_FIRESTORE_DEBATE_COLLECTION:-polyvise_ai_debate_records}|POLYVISE_FIRESTORE_FEEDBACK_COLLECTION=${POLYVISE_FIRESTORE_FEEDBACK_COLLECTION:-polyvise_ai_user_feedback}|POLYVISE_ENABLE_MOCK_LLM=${POLYVISE_ENABLE_MOCK_LLM:-false}|POLYVISE_EVIDENCE_PROVIDER=${POLYVISE_EVIDENCE_PROVIDER:-tavily}" \
-  --update-secrets "OPENROUTER_API_KEY=polyvise-openrouter-api-key:latest,TAVILY_API_KEY=polyvise-tavily-api-key:latest"
+  --update-secrets "OPENROUTER_API_KEY=polyvise-openrouter-api-key:latest,TAVILY_API_KEY=polyvise-tavily-api-key:latest" \
+  --format="value(status.latestCreatedRevisionName)")"
+
+gcloud run services update-traffic "$SERVICE" \
+  --to-revisions "$REVISION=100" \
+  --region "$REGION" \
+  --project "$PROJECT_ID"
