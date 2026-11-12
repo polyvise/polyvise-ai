@@ -5,8 +5,6 @@ WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 
 COPY package.json package-lock.json .npmrc ./
-# npm ci runs the schema postinstall hook, so the hook must exist before
-# the rest of the application source is copied into the image.
 RUN --mount=type=secret,id=npm_token \
     NODE_AUTH_TOKEN="$(cat /run/secrets/npm_token 2>/dev/null || true)" npm ci
 
