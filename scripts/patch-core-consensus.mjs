@@ -10,13 +10,20 @@ export function patchConsensusSummarySchema(source) {
   );
 }
 
+export function patchPanelSchemas(source) {
+  return source.replace(
+    /((?:var|const) panel(?:Advice|Chair)OutputSchema = [\s\S]*?\n\}\);)/g,
+    (schema) => schema.replace(/\.max\((?:120|400|700)\)/g, ""),
+  );
+}
+
 async function patch(directory) {
   for (const entry of await readdir(directory, { withFileTypes: true })) {
     const filename = path.join(directory, entry.name);
     if (entry.isDirectory()) await patch(filename);
     else if (entry.name.endsWith(".js")) {
       const original = await readFile(filename, "utf8");
-      const updated = patchConsensusSummarySchema(original);
+      const updated = patchPanelSchemas(patchConsensusSummarySchema(original));
       if (updated !== original) await writeFile(filename, updated);
     }
   }
