@@ -13,7 +13,11 @@ import {
   X,
 } from "lucide-react";
 import { rememberLocalRun } from "@/lib/local-runs";
-import { defaultSelections, modelCatalog } from "@/lib/model-catalog";
+import {
+  defaultSelectionsByMode,
+  defaultSelectionsForMode,
+  modelCatalog,
+} from "@/lib/model-catalog";
 import type { CouncilSize, DebateMode } from "@polyvise/core/debate/types";
 import {
   buildRunRequest,
@@ -35,7 +39,11 @@ export function Composer({
   const [councilSize, setCouncilSize] = useState<CouncilSize>("quartet");
   const [agentCount, setAgentCount] = useState(5);
   const [rounds, setRounds] = useState(3);
-  const [models, setModels] = useState(defaultSelections);
+  const [modelsByMode, setModelsByMode] = useState(() => ({
+    hybrid_council: defaultSelectionsForMode("hybrid_council"),
+    consensus: defaultSelectionsForMode("consensus"),
+    advisory_panel: defaultSelectionsForMode("advisory_panel"),
+  }));
   const [showContext, setShowContext] = useState(false);
   const [showRouting, setShowRouting] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -49,13 +57,15 @@ export function Composer({
     modelSettingsRef.current?.focus({ preventScroll: true });
   }
   const guide = modeGuide[mode];
+  const models = modelsByMode[mode];
+  const defaults = defaultSelectionsByMode[mode];
   const ready =
     subject.trim().length >= 4 &&
     subject.length <= 600 &&
     context.length <= 1600 &&
     !isSubmitting;
   const customModels = modelSlotsForMode(mode, councilSize).some(
-    ({ id }) => models[id] !== defaultSelections[id],
+    ({ id }) => models[id] !== defaults[id],
   );
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -354,7 +364,12 @@ export function Composer({
                   <button
                     type="button"
                     className="text-action"
-                    onClick={() => setModels({ ...defaultSelections })}
+                    onClick={() =>
+                      setModelsByMode((current) => ({
+                        ...current,
+                        [mode]: defaultSelectionsForMode(mode),
+                      }))
+                    }
                   >
                     Reset defaults
                   </button>
@@ -369,9 +384,12 @@ export function Composer({
                       id={`model-${slot.id}`}
                       value={models[slot.id]}
                       onChange={(event) =>
-                        setModels((current) => ({
+                        setModelsByMode((current) => ({
                           ...current,
-                          [slot.id]: event.target.value,
+                          [mode]: {
+                            ...current[mode],
+                            [slot.id]: event.target.value,
+                          },
                         }))
                       }
                     >

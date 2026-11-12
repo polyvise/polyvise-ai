@@ -5,6 +5,7 @@ import {
   type ModelSpeed,
   type ModelTier
 } from "@polyvise/core/models/catalog";
+import type { DebateMode } from "@polyvise/core/debate/types";
 
 /**
  * The five seats the engine routes model calls to. Each maps to a field of
@@ -70,7 +71,20 @@ export const slots: SlotMeta[] = [
   }
 ];
 
-export const modelCatalog: ModelOption[] = getAvailableModels().map((model) => ({
+const supplementalModels: ModelOption[] = [
+  {
+    id: "openai/gpt-5.6-terra",
+    label: "GPT-5.6 Terra",
+    provider: "openai",
+    speed: "balanced",
+    tier: "standard",
+    reasoning: true,
+    compatibility: "supported",
+    notes: "Balanced intelligence and cost"
+  }
+];
+
+const coreModels: ModelOption[] = getAvailableModels().map((model) => ({
   id: model.id,
   label: model.label,
   provider: model.provider,
@@ -82,14 +96,63 @@ export const modelCatalog: ModelOption[] = getAvailableModels().map((model) => (
   notes: model.notes
 }));
 
-/** Pro and con start on the same model so neither side has a head start. */
-export const defaultSelections: Record<SlotId, string> = {
-  yes: "google/gemini-2.5-flash",
-  no: "google/gemini-2.5-flash",
-  deep: "openai/gpt-5.5",
-  judge: "google/gemini-2.5-flash",
-  quick: "google/gemini-2.5-flash"
-};
+export const modelCatalog: ModelOption[] = [
+  ...coreModels,
+  ...supplementalModels.filter(
+    (supplemental) => !coreModels.some((model) => model.id === supplemental.id)
+  )
+];
+
+type ModelSelections = Record<SlotId, string>;
+
+const fastModel = "google/gemini-2.5-flash";
+const balancedReasoningModel = "openai/gpt-5.6-terra";
+const deepReasoningModel = "openai/gpt-5.6-sol";
+const independentSynthesisModel = "anthropic/claude-sonnet-4.6";
+
+/**
+ * Defaults follow the work rather than forcing one roster onto every mode.
+ * Unused seats remain populated so switching mode or debate size is lossless.
+ */
+export const defaultSelectionsByMode = {
+  hybrid_council: {
+    // Keep both sides on the same model so neither position gets a capability advantage.
+    yes: fastModel,
+    no: fastModel,
+    quick: fastModel,
+    deep: deepReasoningModel,
+    judge: independentSynthesisModel
+  },
+  consensus: {
+    yes: fastModel,
+    no: fastModel,
+    quick: fastModel,
+    // Five perspectives over three rounds make this the highest-volume seat.
+    deep: balancedReasoningModel,
+    judge: deepReasoningModel
+  },
+  advisory_panel: {
+    yes: fastModel,
+    no: fastModel,
+    quick: fastModel,
+    deep: deepReasoningModel,
+    judge: independentSynthesisModel
+  }
+} satisfies Record<DebateMode, ModelSelections>;
+
+export function defaultSelectionsForMode(mode: DebateMode): ModelSelections {
+  return { ...defaultSelectionsByMode[mode] };
+}
+
+export function allDefaultModelIds(): string[] {
+  return Array.from(
+    new Set(
+      Object.values(defaultSelectionsByMode).flatMap((selections) =>
+        Object.values(selections)
+      )
+    )
+  );
+}
 
 export function isKnownModel(id: string): boolean {
   return modelCatalog.some((entry) => entry.id === id);

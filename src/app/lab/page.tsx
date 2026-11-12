@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { LabRunner } from "@/components/lab-runner";
-import { defaultSelections, type SlotId } from "@/lib/model-catalog";
+import {
+  allDefaultModelIds,
+  defaultSelectionsByMode,
+} from "@/lib/model-catalog";
 import { labProviderStatus, availableLabModels } from "@/server/model-lab";
 
 export const dynamic = "force-dynamic";
@@ -10,21 +13,65 @@ export const metadata: Metadata = {
   description: "Send one prompt to every configured model and compare the answers side by side."
 };
 
-const slotLabels: Record<SlotId, { label: string; tone: string }> = {
-  yes: { label: "Pro side", tone: "pro" },
-  no: { label: "Con side", tone: "con" },
-  deep: { label: "Claims", tone: "neutral" },
-  judge: { label: "Judge", tone: "judge" },
-  quick: { label: "Framing & evidence", tone: "neutral" }
-};
+const defaultRoles = [
+  {
+    mode: "hybrid_council",
+    slot: "quick",
+    label: "Debate · opening",
+    tone: "neutral"
+  },
+  {
+    mode: "hybrid_council",
+    slot: "deep",
+    label: "Debate · claims",
+    tone: "neutral"
+  },
+  {
+    mode: "hybrid_council",
+    slot: "judge",
+    label: "Debate · judge",
+    tone: "judge"
+  },
+  {
+    mode: "consensus",
+    slot: "quick",
+    label: "Consensus · designer",
+    tone: "neutral"
+  },
+  {
+    mode: "consensus",
+    slot: "deep",
+    label: "Consensus · perspectives",
+    tone: "neutral"
+  },
+  {
+    mode: "consensus",
+    slot: "judge",
+    label: "Consensus · summary",
+    tone: "judge"
+  },
+  {
+    mode: "advisory_panel",
+    slot: "deep",
+    label: "Advisory · advisors",
+    tone: "neutral"
+  },
+  {
+    mode: "advisory_panel",
+    slot: "judge",
+    label: "Advisory · chair",
+    tone: "judge"
+  }
+] as const;
 
 export default async function LabPage() {
   const availableModels = await availableLabModels();
   const { configured, mock } = labProviderStatus();
-  // A model can hold several seats by default; the roster lists all of them.
-  const defaultSlotsFor = new Map<string, SlotId[]>();
-  for (const [slot, model] of Object.entries(defaultSelections) as [SlotId, string][]) {
-    defaultSlotsFor.set(model, [...(defaultSlotsFor.get(model) ?? []), slot]);
+  // Defaults are mode-specific, so the roster names both the mode and role.
+  const defaultRolesFor = new Map<string, (typeof defaultRoles)[number][]>();
+  for (const role of defaultRoles) {
+    const model = defaultSelectionsByMode[role.mode][role.slot];
+    defaultRolesFor.set(model, [...(defaultRolesFor.get(model) ?? []), role]);
   }
 
   return (
@@ -92,7 +139,7 @@ export default async function LabPage() {
             </thead>
             <tbody>
               {availableModels.map((model) => {
-                const seats = defaultSlotsFor.get(model.id) ?? [];
+                const roles = defaultRolesFor.get(model.id) ?? [];
                 const experimental = model.compatibility === "experimental";
                 return (
                   <tr key={model.id} className={experimental ? "dim" : undefined}>
@@ -101,11 +148,14 @@ export default async function LabPage() {
                     </td>
                     <td>{model.provider}</td>
                     <td>
-                      {seats.length ? (
+                      {roles.length ? (
                         <span className="row gap6 wrap">
-                          {seats.map((slot) => (
-                            <span className={`chip ${slotLabels[slot].tone}`} key={slot}>
-                              {slotLabels[slot].label}
+                          {roles.map((role) => (
+                            <span
+                              className={`chip ${role.tone}`}
+                              key={`${role.mode}-${role.slot}`}
+                            >
+                              {role.label}
                             </span>
                           ))}
                         </span>
@@ -146,7 +196,7 @@ export default async function LabPage() {
         </div>
       </div>
 
-      <LabRunner availableModels={availableModels} defaultModels={Array.from(new Set(Object.values(defaultSelections)))} />
+      <LabRunner availableModels={availableModels} defaultModels={allDefaultModelIds()} />
     </section>
   );
 }
