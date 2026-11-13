@@ -1759,7 +1759,7 @@ code {
 }
 .turn.judge {
   grid-column: 1 / -1;
-  background: linear-gradient(180deg, var(--judge-soft), transparent 60%), var(--surface);
+  background: var(--surface);
 }
 .turn.lens1 { border-top: 3px solid var(--lens-1); }
 .turn.lens2 { border-top: 3px solid var(--lens-2); }

@@ -134,6 +134,9 @@ function buildSeedRecord(input: DebateRequest): {
   const baseConfig = loadDebateRuntimeConfig();
   const config: DebateRuntimeConfig = {
     ...baseConfig,
+    // Multi-agent arrays need more output room than a short model-lab answer.
+    llmMaxTokens: Math.max(baseConfig.llmMaxTokens, 8192),
+    useStrictJsonSchema: true,
     quickModel: request.models?.quick?.trim() || baseConfig.quickModel,
     deepModel: request.models?.deep?.trim() || baseConfig.deepModel,
     yesModel: request.models?.yes?.trim() || request.models?.quick?.trim() || baseConfig.yesModel,

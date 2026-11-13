@@ -23,8 +23,7 @@ export default async function RunsPage() {
 
   return (
     <section className="page">
-      <span className="eyebrow">Run history</span>
-      <h2 className="display d2 mt10">Your runs</h2>
+      <h1 className="display page-title">Your runs</h1>
       <p className="lede mt10 mw640">
         Polyvise has no accounts, so this list lives in your browser. Everyone else&apos;s questions stay private —
         the totals below are the only thing shared, and they never include a topic.
@@ -34,10 +33,7 @@ export default async function RunsPage() {
 
       <div className="mt44">
         <div className="section-head">
-          <div>
-            <span className="eyebrow">Across the workspace</span>
-            <h3 className="display d3 mt6">Anonymous totals</h3>
-          </div>
+          <h2 className="display d4">Anonymous totals across the workspace</h2>
           <span className="small">
             <Link href={"/telemetry" as Route} className="link">
               Full engine health →

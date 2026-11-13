@@ -3,7 +3,11 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Composer } from "@/components/composer";
 import { buildRunRequest, modeOrder, parseMode } from "@/lib/mode-guide";
-import { defaultSelections } from "@/lib/model-catalog";
+import {
+  defaultSelectionsByMode,
+  defaultSelectionsForMode,
+  modelCatalog,
+} from "@/lib/model-catalog";
 import { debateRequestSchema } from "@polyvise/core/debate/schema";
 
 import {
@@ -64,7 +68,7 @@ describe("mode request contracts", () => {
         councilSize: "duo",
         agentCount: 7,
         rounds: 5,
-        models: defaultSelections,
+        models: defaultSelectionsForMode(mode),
       });
       expect(debateRequestSchema.safeParse(request).success).toBe(true);
       expect(request.subject).toBe("Should we migrate our database?");
@@ -76,10 +80,14 @@ describe("mode request contracts", () => {
         mode === "consensus" ? { agentCount: 7, rounds: 5 } : undefined,
       );
       expect(request.models?.yes).toBe(
-        mode === "hybrid_council" ? defaultSelections.yes : undefined,
+        mode === "hybrid_council"
+          ? defaultSelectionsByMode.hybrid_council.yes
+          : undefined,
       );
       expect(request.models?.no).toBe(
-        mode === "hybrid_council" ? defaultSelections.no : undefined,
+        mode === "hybrid_council"
+          ? defaultSelectionsByMode.hybrid_council.no
+          : undefined,
       );
     },
   );
@@ -148,6 +156,51 @@ describe("composer interactions", () => {
       (host.querySelector("#context") as HTMLTextAreaElement).value,
     ).toContain("weekday support");
   });
+  it("uses and resets independent model defaults for each mode", async () => {
+    await act(async () => root.render(<Composer />));
+    await click('[aria-controls="model-settings"]');
+
+    expect((host.querySelector("#model-deep") as HTMLSelectElement).value).toBe(
+      "openai/gpt-5.6-sol",
+    );
+    expect((host.querySelector("#model-judge") as HTMLSelectElement).value).toBe(
+      "anthropic/claude-sonnet-4.6",
+    );
+
+    await click('input[value="consensus"]');
+    const consensusDeep = host.querySelector("#model-deep") as HTMLSelectElement;
+    expect(consensusDeep.value).toBe("openai/gpt-5.6-terra");
+    expect((host.querySelector("#model-judge") as HTMLSelectElement).value).toBe(
+      "openai/gpt-5.6-sol",
+    );
+
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(
+        HTMLSelectElement.prototype,
+        "value",
+      )!.set!.call(consensusDeep, "openai/gpt-5.5");
+      consensusDeep.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    expect(host.querySelector(".routing-toggle")?.textContent).toContain(
+      "Customized",
+    );
+
+    await click('input[value="advisory_panel"]');
+    expect((host.querySelector("#model-deep") as HTMLSelectElement).value).toBe(
+      "openai/gpt-5.6-sol",
+    );
+    await click('input[value="consensus"]');
+    expect((host.querySelector("#model-deep") as HTMLSelectElement).value).toBe(
+      "openai/gpt-5.5",
+    );
+    await click(".routing-settings .text-action");
+    expect((host.querySelector("#model-deep") as HTMLSelectElement).value).toBe(
+      "openai/gpt-5.6-terra",
+    );
+    expect(host.querySelector(".routing-toggle")?.textContent).toContain(
+      "Defaults selected",
+    );
+  });
   it("preserves inputs and offers recovery after a rate limit", async () => {
     vi.stubGlobal(
       "fetch",
@@ -204,6 +257,20 @@ describe("composer interactions", () => {
     expect(push).toHaveBeenCalledWith("/runs/debate_test");
     expect(window.localStorage.getItem("polyvise-runs")).toContain(
       "debate_test",
+    );
+  });
+});
+
+describe("model defaults", () => {
+  it("keeps every default selectable and the debate judge provider-independent", () => {
+    const ids = new Set(modelCatalog.map((model) => model.id));
+    for (const selections of Object.values(defaultSelectionsByMode)) {
+      for (const model of Object.values(selections)) {
+        expect(ids.has(model)).toBe(true);
+      }
+    }
+    expect(defaultSelectionsByMode.hybrid_council.judge.split("/")[0]).not.toBe(
+      defaultSelectionsByMode.hybrid_council.quick.split("/")[0],
     );
   });
 });

@@ -3,7 +3,8 @@
 import Link from "next/link";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
-import { FormEvent, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { FormEvent, KeyboardEvent, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { Check, Download } from "lucide-react";
 import { ResultPerspectives } from "@/components/result-perspectives";
 import { RunQualityNote } from "@/components/run-quality-note";
 import { RunDownload } from "@/components/run-download";
@@ -54,6 +55,14 @@ const eventKinds: DebateLiveEvent["kind"][] = [
   "complete",
   "error"
 ];
+
+const tabOrder: TabId[] = ["verdict", "floor", "evidence", "graph", "telemetry"];
+
+const sideLabels = { pro: "Arguing for", con: "Arguing against", neutral: "Neutral" } as const;
+
+function sentenceCase(text: string): string {
+  return text ? text.charAt(0).toUpperCase() + text.slice(1) : text;
+}
 
 const stages: { id: DebateStatus; label: string }[] = [
   { id: "framing", label: "Framing" },
@@ -124,6 +133,15 @@ export function RunSurface({ record }: { record: DebateRecord }) {
   const totalCost = calls.reduce((sum, snapshot) => sum + (snapshot.estimatedCostUsd ?? 0), 0);
   const grouped = useMemo(() => groupTurnsByRound(state.turns), [state.turns]);
 
+  function handleTabKeys(event: KeyboardEvent<HTMLDivElement>) {
+    const step = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
+    if (!step) return;
+    event.preventDefault();
+    const next = tabOrder[(tabOrder.indexOf(tab) + step + tabOrder.length) % tabOrder.length];
+    setTab(next);
+    document.getElementById(`run-tab-${next}`)?.focus();
+  }
+
   return (
     <section className="page">
       <RunHeader
@@ -137,7 +155,7 @@ export function RunSurface({ record }: { record: DebateRecord }) {
         <div className="verdict-ready" role="status"><div><strong>Your verdict is ready.</strong><span>See the recommendation, the tradeoffs and what would change the result.</span></div><button type="button" className="btn btn-primary btn-sm" onClick={() => setTab("verdict")}>Read the verdict →</button></div>
       ) : null}
 
-      <div className="tabs" role="tablist">
+      <div className="tabs" role="tablist" aria-label="Run sections" onKeyDown={handleTabKeys}>
         <Tab id="verdict" current={tab} onSelect={setTab} label="Verdict" />
         <Tab id="floor" current={tab} onSelect={setTab} label="Debate floor" count={state.turns.length} />
         <Tab id="evidence" current={tab} onSelect={setTab} label="Evidence" count={state.sources.length} />
@@ -150,7 +168,7 @@ export function RunSurface({ record }: { record: DebateRecord }) {
       ) : null}
 
       <div className="run-layout">
-        <div className="stack">
+        <div className="stack" role="tabpanel" id="run-panel" aria-labelledby={`run-tab-${tab}`}>
           {tab === "floor" ? <><RoleBriefs state={state} /><DebateFloor state={state} grouped={grouped} /></> : null}
           {tab === "verdict" ? <VerdictTab state={state} record={record} /> : null}
           {tab === "evidence" ? <EvidenceTab sources={state.sources} /> : null}
@@ -201,7 +219,10 @@ function RunHeader({
         </span>
       </div>
 
-      <h1 className="display d2 run-res">{state.resolution ?? state.subject}</h1>
+      <div className="run-title-row">
+        <h1 className="display run-res">{state.resolution ?? state.subject}</h1>
+        <RunDownload record={record} />
+      </div>
 
       <RunQualityNote record={record} />
       {state.highStakes ? (
@@ -213,8 +234,7 @@ function RunHeader({
         />
       ) : null}
 
-      <div className="row gap10 wrap mt14"><RunDownload record={record} /></div>
-      <Stepper status={state.status} />
+      {state.status === "complete" ? null : <Stepper status={state.status} />}
     </div>
   );
 }
@@ -263,7 +283,7 @@ function Stepper({ status }: { status: DebateStatus }) {
         const className = failed ? "step failed" : done ? "step done" : now ? "step now" : "step";
         return (
           <div className={className} key={stage.id}>
-            <span className="step-i">{failed ? "!" : done ? "✓" : index + 1}</span>
+            <span className="step-i">{failed ? "!" : done ? <Check size={13} strokeWidth={2.4} aria-label="Done" /> : index + 1}</span>
             <span className="step-l">{stage.label}</span>
           </div>
         );
@@ -289,7 +309,10 @@ function Tab({
     <button
       type="button"
       role="tab"
+      id={`run-tab-${id}`}
+      aria-controls="run-panel"
       aria-selected={current === id}
+      tabIndex={current === id ? 0 : -1}
       className={`tab${current === id ? " on" : ""}`}
       onClick={() => onSelect(id)}
     >
@@ -512,10 +535,12 @@ function VerdictTab({ state, record }: { state: RunViewState; record: DebateReco
   const proLead = scorecard.categories.filter((category) => category.pro >= category.con);
   const conLead = scorecard.categories.filter((category) => category.con > category.pro);
   const tone = recommendationTone(scorecard.recommendation);
+  const origins = state.fallbacks.scouts
+    ? []
+    : state.scouts.map((scout) => ({ title: sentenceCase(scout.lens), tag: sideLabels[scout.side], body: scout.thesis }));
 
   return (
     <div>
-      <ResultPerspectives items={state.fallbacks.scouts ? [] : state.scouts.map(scout => ({ title: `${scout.lens} · ${scout.side}`, body: scout.thesis }))} />
       <div className="verdict">
         <div className="verdict-body">
           <div className="verdict-top">
@@ -525,7 +550,7 @@ function VerdictTab({ state, record }: { state: RunViewState; record: DebateReco
                 {formatRecommendation(scorecard.recommendation)}
               </span>
               <h2 className="display d2">{summary.headline}</h2>
-              <p className="lede mt14" style={{ fontSize: "14.5px" }}>
+              <p className="verdict-lede">
                 {summary.recommendation}
               </p>
             </div>
@@ -585,12 +610,20 @@ function VerdictTab({ state, record }: { state: RunViewState; record: DebateReco
         <ListCard title="What would change this verdict" items={summary.whatWouldChangeMind} />
       </div>
 
+      {origins.length ? (
+        <section className="verdict-origins" aria-labelledby="verdict-origins-title">
+          <h2 id="verdict-origins-title">Where each perspective started</h2>
+          <ResultPerspectives items={origins} connectors={false} />
+        </section>
+      ) : null}
+
       <div className="row gap8 wrap mt18">
         <Link href={"/" as Route} className="btn">
           Re-run with different models
         </Link>
         <a className="btn" href={`/api/debates/${record.id}`} download={`${record.id}.json`}>
-          Export artifact ↓
+          <Download size={14} aria-hidden="true" />
+          Export artifact
         </a>
       </div>
 
@@ -641,12 +674,6 @@ function ListCard({
   return (
     <div className={`card${tone ? ` canvas-${tone}` : ""}`}>
       <div className="card-head">
-        {tone ? (
-          <span className={`chip ${tone}`}>
-            <span className="dot" />
-            {tone}
-          </span>
-        ) : null}
         <span className="card-title">{title}</span>
       </div>
       <div className="card-pad">
@@ -708,7 +735,7 @@ function Followups({ record }: { record: DebateRecord }) {
             style={{ flex: 1, minWidth: 220, minHeight: 0, height: "var(--ctl)", padding: "0 14px", resize: "none" }}
             value={question}
             onChange={(event) => setQuestion(event.target.value)}
-            placeholder="What if we only did email, not chat?"
+            placeholder="Ask about an assumption, a trade-off, or a what-if"
             aria-label="Follow-up question"
           />
           <button type="submit" className="btn btn-primary" disabled={isLoading || question.trim().length < 4}>

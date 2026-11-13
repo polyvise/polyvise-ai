@@ -8,15 +8,15 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run && node --test tests/core-terminology-patch.test.mjs",
-    "test:coverage": "vitest run --coverage && node --test tests/core-terminology-patch.test.mjs",
+    "test": "vitest run && node --test tests/core-consensus-patch.test.mjs",
+    "test:coverage": "vitest run --coverage && node --test tests/core-consensus-patch.test.mjs",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "verify": "npm run typecheck && npm run test:coverage && npm run build",
-    "postinstall": "node scripts/patch-core-terminology.mjs"
+    "postinstall": "node scripts/patch-core-consensus.mjs"
   },
   "dependencies": {
-    "@polyvise/core": "0.4.0",
+    "@polyvise/core": "0.4.1",
     "@xyflow/react": "latest",
     "drizzle-orm": "latest",
     "lucide-react": "latest",
