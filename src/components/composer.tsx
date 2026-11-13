@@ -8,8 +8,12 @@ import {
   ArrowRight,
   Check,
   ChevronDown,
+  ChevronRight,
+  Merge,
+  Scale,
   SlidersHorizontal,
   Plus,
+  UsersRound,
   X,
 } from "lucide-react";
 import { rememberLocalRun } from "@/lib/local-runs";
@@ -26,6 +30,21 @@ import {
   modelSlotsForMode,
 } from "@/lib/mode-guide";
 import { PerspectivePreview } from "./perspective-preview";
+
+const modeIcons = {
+  hybrid_council: Scale,
+  consensus: Merge,
+  advisory_panel: UsersRound,
+} as const;
+
+function ModeIcon({ id }: { id: DebateMode }) {
+  const Icon = modeIcons[id];
+  return (
+    <span className={`goal-symbol ${id}`} aria-hidden="true">
+      <Icon size={20} strokeWidth={1.8} />
+    </span>
+  );
+}
 
 export function Composer({
   initialMode = "hybrid_council",
@@ -145,6 +164,12 @@ export function Composer({
               minLength={4}
               value={subject}
               onChange={(event) => setSubject(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+                  event.preventDefault();
+                  event.currentTarget.form?.requestSubmit();
+                }
+              }}
               placeholder={guide.placeholder}
               aria-describedby="question-hint"
             />
@@ -189,7 +214,11 @@ export function Composer({
                 <span className="input-count">{context.length}/1600</span>
               </div>
             )}
-            <details className="question-examples"><summary>Example questions</summary>
+            <details className="question-examples">
+              <summary>
+                <ChevronRight size={14} aria-hidden="true" />
+                Example questions
+              </summary>
 
               {guide.examples.map((example) => (
                 <button
@@ -229,13 +258,7 @@ export function Composer({
                       setError(null);
                     }}
                   />
-                  <span className={`goal-symbol ${id}`} aria-hidden="true">
-                    {id === "hybrid_council"
-                      ? "⇄"
-                      : id === "consensus"
-                        ? "≋"
-                        : "✳"}
-                  </span>
+                  <ModeIcon id={id} />
                   <span className="goal-name">{modeGuide[id].name}</span>
                   <span className="goal-mode">{modeGuide[id].goal}</span>
                   <span className="goal-question">{modeGuide[id].prompt}</span>
@@ -404,6 +427,14 @@ export function Composer({
               </div>
             )}
           </div>
+        </fieldset>
+        <div className="workbench-footer">
+          {error && (
+            <div className="composer-error" role="alert">
+              <strong>Your run didn’t start.</strong>
+              <p>{error}</p>
+            </div>
+          )}
           <div className="workbench-submit">
             <button
               type="submit"
@@ -423,19 +454,12 @@ export function Composer({
               )}
             </button>
           </div>
-        </fieldset>
-        {error && (
-          <div className="composer-error" role="alert">
-            <strong>Your run didn’t start.</strong>
-            <p>{error}</p>
-          </div>
-        )}
-        <div className="run-expectations">
-          <span className="status-dot" />
-          <p>
+          <p className="run-expectations">
             {isSubmitting
               ? "Preparing your workspace. You’ll be taken to the run when it’s ready."
-              : "Watch the reasoning unfold live. Runs can take several minutes; timing and cost depend on your models and settings."}
+              : subject.trim().length < 4
+                ? "Enter a question to start. Runs can take several minutes."
+                : "Runs can take several minutes; timing and cost depend on your models and settings."}
           </p>
         </div>
       </form>

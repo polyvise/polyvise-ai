@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useRef, useState } from "react";
+import { ChevronRight } from "lucide-react";
 import { defaultQuestion, exampleQuestions } from "@/lib/mode-guide";
 import type { ModelOption } from "@/lib/model-catalog";
 import { formatCost, formatLatency, formatTokens } from "@/lib/run-view";
@@ -64,7 +65,7 @@ export function LabRunner({ defaultModels, availableModels }: { defaultModels: s
   return (
     <div>
       <form onSubmit={handleSubmit}>
-        <div className="composer mt24">
+        <div className="composer lab-composer mt24">
           <div className="composer-top">
             <textarea
               ref={promptRef}
@@ -76,7 +77,10 @@ export function LabRunner({ defaultModels, availableModels }: { defaultModels: s
               aria-label="Prompt"
             />
             <details className="question-examples">
-              <summary>Example questions</summary>
+              <summary>
+                <ChevronRight size={14} aria-hidden="true" />
+                Example questions
+              </summary>
               {exampleQuestions.map((question) => (
                 <button key={question} type="button" disabled={isRunning} onClick={() => {
                   setPrompt(question);

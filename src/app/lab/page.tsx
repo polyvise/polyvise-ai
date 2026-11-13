@@ -76,8 +76,7 @@ export default async function LabPage() {
 
   return (
     <section className="page">
-      <span className="eyebrow">Model lab</span>
-      <h2 className="display d2 mt10">Compare models on the same prompt</h2>
+      <h1 className="display page-title">Compare models on the same prompt</h1>
       <p className="lede mt10 mw620">
         Send one prompt to every configured model and compare the answers side by side, along with what each one cost
         and how long it took.
@@ -138,6 +137,13 @@ export default async function LabPage() {
               </tr>
             </thead>
             <tbody>
+              {availableModels.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="tbl-empty">
+                    No models to list yet. The roster fills in once the server can reach OpenRouter.
+                  </td>
+                </tr>
+              ) : null}
               {availableModels.map((model) => {
                 const roles = defaultRolesFor.get(model.id) ?? [];
                 const experimental = model.compatibility === "experimental";
