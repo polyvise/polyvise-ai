@@ -11,7 +11,7 @@ export function RunsTable({ runs }: { runs: RunSummary[] }) {
         <table className="tbl">
           <thead>
             <tr>
-              <th>Resolution</th>
+              <th>Question</th>
               <th>Mode</th>
               <th>Verdict</th>
               <th
