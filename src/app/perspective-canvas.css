@@ -27,7 +27,8 @@ body { background: var(--void); }
 .display { line-height: 1.15; }
 .topbar { background: var(--topbar); height: 78px; gap: 36px; }
 .brand-name { font-size: 27px; }
-.brand .mark { display: none; }
+.brand .mark { display: block; position: relative; overflow: hidden; }
+.brand-art { position: absolute; top: 50%; left: 50%; max-width: none; transform: translate(-50%, -50%); }
 .nav-item.active { color: var(--pro-ink); }
 .canvas-home { max-width: 1500px; width: 100%; margin: 0 auto; padding: 30px 28px 60px; }
 .canvas-home .decision-workspace { grid-template-columns: 380px minmax(0, 1fr); gap: 0; align-items: stretch; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: clip; box-shadow: var(--shadow); }
