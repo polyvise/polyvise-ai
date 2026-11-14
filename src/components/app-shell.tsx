@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import type { Route } from "next";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
@@ -30,13 +31,18 @@ function isActive(item: NavItem, pathname: string): boolean {
   return item.match.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
 }
 
-export function BrandMark({ size = 28 }: { size?: number }) {
+export function BrandMark({ size = 44 }: { size?: number }) {
   return (
-    <svg className="mark" width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="12" cy="12" r="9.5" className="s-pro" strokeWidth="1.8" />
-      <circle cx="12" cy="12" r="5.2" className="s-con" strokeWidth="1.8" />
-      <circle cx="12" cy="12" r="1.8" className="f-judge" />
-    </svg>
+    <span className="mark" style={{ width: size, height: size * 0.75 }} aria-hidden="true">
+      <Image
+        className="brand-art"
+        src="/polyvise-logo.png"
+        alt=""
+        width={Math.round(size * 1.45)}
+        height={Math.round(size * 1.45)}
+        loading="eager"
+      />
+    </span>
   );
 }
 
