@@ -4,7 +4,7 @@ import type { Route } from "next";
 import { roundLabels, roundOrder } from "@/lib/run-view";
 
 export const metadata: Metadata = {
-  title: "Debate | Polyvise",
+  title: "Debate | Polyvise AI",
   description: "Debate — two models for, two against, and a neutral judge."
 };
 

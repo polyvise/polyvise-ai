@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { Route } from "next";
 
 export const metadata: Metadata = {
-  title: "Advisory panel | Polyvise",
+  title: "Advisory panel | Polyvise AI",
   description: "A mode where named perspectives advise separately and a chair writes up the overlap."
 };
 

@@ -1,6 +1,6 @@
 # polyvise.ai
 
-This repository contains the Polyvise website and professional debate workspace served at `polyvise.ai`.
+This repository contains the Polyvise AI website and professional debate workspace served at `polyvise.ai`.
 
 It consumes the framework-neutral [`@polyvise/core`](https://github.com/polyvise/polyvise-core) package and owns its own Next.js routes, persistence adapters, UI, operations, and deployment configuration.
 

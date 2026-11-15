@@ -468,6 +468,13 @@ select:focus-visible {
   display: inline-block;
   flex: none;
 }
+/* "Polyvise AI" plus four nav items crowds the bar just above the phone
+   breakpoint; keep the mark and drop the wordmark a little earlier. */
+@media (max-width: 980px) {
+  .brand-name {
+    display: none;
+  }
+}
 @media (max-width: 900px) {
   :root {
     --page-x: 20px;

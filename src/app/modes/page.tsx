@@ -5,7 +5,7 @@ import { modeGuide, modeOrder } from "@/lib/mode-guide";
 import { ModeDiagram } from "@/components/mode-diagram";
 
 export const metadata: Metadata = {
-  title: "Choose a mode | Polyvise",
+  title: "Choose a mode | Polyvise AI",
   description:
     "Choose a debate for a decision, consensus for agreement, or an advisory panel for strategy.",
 };

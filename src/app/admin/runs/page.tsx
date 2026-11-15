@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export const metadata: Metadata = {
-  title: "All runs | Polyvise admin",
+  title: "All runs | Polyvise AI admin",
   robots: { index: false, follow: false }
 };
 
