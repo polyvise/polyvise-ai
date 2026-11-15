@@ -1,15 +1,14 @@
-import {
-  getAvailableModels,
-  type ModelCompatibility,
-  type ModelProvider,
-  type ModelSpeed,
-  type ModelTier
-} from "@polyvise/core/models/catalog";
-import type { DebateMode } from "@polyvise/core/debate/types";
+import type {
+  DebateMode,
+  ModelCompatibility,
+  ModelProvider,
+  ModelSpeed,
+  ModelTier
+} from "@/lib/polyvise-api/types";
 
 /**
  * The five seats the engine routes model calls to. Each maps to a field of
- * core's DebateModelSelection; the engine picks the seat from the step's role.
+ * the API's DebateModelSelection; the engine picks the seat from the step's role.
  *
  * - yes:   the pro scouts and the pro debaters
  * - no:    the con scouts and the con debaters
@@ -84,24 +83,18 @@ const supplementalModels: ModelOption[] = [
   }
 ];
 
-const coreModels: ModelOption[] = getAvailableModels().map((model) => ({
-  id: model.id,
-  label: model.label,
-  provider: model.provider,
-  speed: model.speed,
-  tier: model.tier,
-  reasoning: model.reasoning,
-  compatibility: model.compatibility,
-  compatibilityNote: model.compatibilityNote,
-  notes: model.notes
-}));
-
-export const modelCatalog: ModelOption[] = [
-  ...coreModels,
-  ...supplementalModels.filter(
-    (supplemental) => !coreModels.some((model) => model.id === supplemental.id)
-  )
-];
+/**
+ * The catalog the pickers offer: the Polyvise API's models, then the ones this
+ * app adds that the API does not list yet.
+ */
+export function withSupplementalModels(apiModels: ModelOption[]): ModelOption[] {
+  return [
+    ...apiModels,
+    ...supplementalModels.filter(
+      (supplemental) => !apiModels.some((model) => model.id === supplemental.id)
+    )
+  ];
+}
 
 type ModelSelections = Record<SlotId, string>;
 
@@ -154,6 +147,22 @@ export function allDefaultModelIds(): string[] {
   );
 }
 
-export function isKnownModel(id: string): boolean {
-  return modelCatalog.some((entry) => entry.id === id);
+export interface ModelChoice {
+  id: string;
+  label: string;
+}
+
+/**
+ * What a model picker lists. Every default stays selectable even before the
+ * catalog has loaded, or if the API is unreachable, so a picker never shows a
+ * value it cannot display.
+ */
+export function modelChoices(catalog: ModelOption[] | null): ModelChoice[] {
+  const choices: ModelChoice[] = (catalog ?? []).map(({ id, label }) => ({ id, label }));
+  for (const id of allDefaultModelIds()) {
+    if (!choices.some((choice) => choice.id === id)) {
+      choices.push({ id, label: supplementalModels.find((model) => model.id === id)?.label ?? id });
+    }
+  }
+  return choices;
 }

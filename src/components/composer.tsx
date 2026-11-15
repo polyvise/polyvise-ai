@@ -17,12 +17,13 @@ import {
   X,
 } from "lucide-react";
 import { rememberLocalRun } from "@/lib/local-runs";
+import { useEngineInfo } from "@/components/engine-info";
 import {
   defaultSelectionsByMode,
   defaultSelectionsForMode,
-  modelCatalog,
+  modelChoices,
 } from "@/lib/model-catalog";
-import type { CouncilSize, DebateMode } from "@polyvise/core/debate/types";
+import type { CouncilSize, DebateMode } from "@/lib/polyvise-api/types";
 import {
   buildRunRequest,
   modeGuide,
@@ -52,6 +53,7 @@ export function Composer({
   initialMode?: DebateMode;
 }) {
   const router = useRouter();
+  const choices = modelChoices(useEngineInfo().models);
   const [subject, setSubject] = useState("");
   const [context, setContext] = useState("");
   const [mode, setMode] = useState(initialMode);
@@ -416,7 +418,7 @@ export function Composer({
                         }))
                       }
                     >
-                      {modelCatalog.map((option) => (
+                      {choices.map((option) => (
                         <option key={option.id} value={option.id}>
                           {option.label}
                         </option>

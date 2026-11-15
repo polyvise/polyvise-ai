@@ -1,5 +1,5 @@
-import type { DebateRecord } from "@polyvise/core/debate/types";
-import type { ConsensusStance } from "@polyvise/core/runs/types";
+import type { DebateRecord } from "@/lib/polyvise-api/types";
+import type { ConsensusStance } from "@/lib/polyvise-api/types";
 import { asAdvisoryPanelRun, asConsensusRun, asDebateRun, type PolyviseRecord } from "@/lib/run-record";
 import { formatRecommendation, recommendationTone } from "./run-view";
 

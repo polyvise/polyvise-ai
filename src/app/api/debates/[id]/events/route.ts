@@ -48,7 +48,7 @@ export async function GET(_request: Request, context: RouteContext) {
         }
       };
 
-      const { unsubscribe, terminal } = subscribeToDebate(id, writeEvent);
+      const { unsubscribe, terminal } = subscribeToDebate(debate, writeEvent);
 
       if (terminal) {
         safeEnqueue(encoder.encode(`event: closed\ndata: {}\n\n`));

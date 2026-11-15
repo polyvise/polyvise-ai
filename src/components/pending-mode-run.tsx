@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { Route } from "next";
 import { Check, TriangleAlert } from "lucide-react";
-import type { DebateStatus } from "@polyvise/core/debate/types";
+import type { DebateStatus } from "@/lib/polyvise-api/types";
 import type { PolyviseRecord } from "@/lib/run-record";
 import { modeGuide } from "@/lib/mode-guide";
 

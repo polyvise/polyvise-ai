@@ -1,7 +1,7 @@
 import { desc, eq } from "drizzle-orm";
 import { getDb } from "./db/client";
 import { debateRecords, userFeedback } from "./db/schema";
-import type { UserFeedback } from "@polyvise/core/debate/types";
+import type { UserFeedback } from "@/lib/polyvise-api/types";
 import type { PolyviseRecord } from "@/lib/run-record";
 
 export interface DebateRepository {

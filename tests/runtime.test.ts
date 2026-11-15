@@ -1,8 +1,14 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { startDebate } from "@/server/debate-store";
+import { installFakeApi } from "./helpers/fake-api";
+
+beforeEach(() => {
+  installFakeApi();
+});
+afterEach(() => vi.unstubAllGlobals());
 
 describe("Polyvise application runtime", () => {
-  it("runs the core engine through the app-owned service boundary", async () => {
+  it("runs the engine through the Polyvise API and stores the result", async () => {
     const { debate, completion } = await startDebate({
       subject: "Should schools have longer recess?"
     });

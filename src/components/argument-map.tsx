@@ -9,7 +9,7 @@ import {
   type Edge,
   type Node
 } from "@xyflow/react";
-import type { ArgumentEdge, ArgumentNode } from "@polyvise/core/debate/types";
+import type { ArgumentEdge, ArgumentNode } from "@/lib/polyvise-api/types";
 
 type ArgumentMapProps = {
   nodes: ArgumentNode[];

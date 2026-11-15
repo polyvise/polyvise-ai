@@ -1,6 +1,5 @@
-import { ZodError } from "zod";
-import { followupRequestSchema } from "@polyvise/core/debate/schema";
 import { addFollowup } from "@/server/debate-store";
+import { PolyviseApiError } from "@/server/polyvise-api";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -10,8 +9,8 @@ export async function POST(request: Request, context: RouteContext) {
   const { id } = await context.params;
 
   try {
-    const payload = followupRequestSchema.parse(await request.json());
-    const followup = await addFollowup(id, payload.question);
+    const payload = (await request.json().catch(() => null)) as { question?: unknown } | null;
+    const followup = await addFollowup(id, payload?.question);
 
     if (!followup) {
       return Response.json(
@@ -36,11 +35,11 @@ export async function POST(request: Request, context: RouteContext) {
       }
     );
   } catch (error) {
-    if (error instanceof ZodError) {
+    if (error instanceof PolyviseApiError && error.invalidRequest) {
       return Response.json(
         {
           error: "Invalid follow-up request.",
-          issues: error.issues
+          issues: error.issues ?? []
         },
         {
           status: 400

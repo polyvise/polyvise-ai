@@ -1,38 +1,31 @@
-import { withPolyviseTerminology } from "./polyvise-provider";
+import { polyvisePromptPolicy } from "./prompt-policy";
 import { normalizeDebateOutput } from "@/lib/debate-terminology";
-import { randomUUID } from "node:crypto";
-import { createDefaultLlmProvider, LlmProviderFailure } from "@polyvise/core/providers/llm";
 import {
-  loadDebateRuntimeConfig,
-  type DebateRuntimeConfig
-} from "@polyvise/core/debate/config";
-import {
-  debateRequestSchema,
-  feedbackRequestSchema,
-  followupOutputSchema
-} from "@polyvise/core/debate/schema";
-import {
-  frameDebateRequest,
-  productNotes,
-  runHybridCouncilDebate
-} from "@polyvise/core/debate/engine";
-import { runConsensus, type ConsensusLiveEvent } from "@polyvise/core/consensus/engine";
-import { runAdvisoryPanel, type AdvisoryPanelLiveEvent } from "@polyvise/core/panel/engine";
+  answerFollowup,
+  getJob,
+  jobEvents,
+  normalizeFeedback,
+  PolyviseApiError,
+  seedRecord,
+  startJob,
+  type ApiCallOptions,
+  type JobFailure,
+  type JobStatus
+} from "./polyvise-api";
 import { createDefaultDebateRepository, createDefaultFeedbackRepository } from "./repository";
-import { asDebateRun, type PolyviseRecord, type StoredRun } from "@/lib/run-record";
+import { asDebateRun, type PolyviseRecord } from "@/lib/run-record";
 import type {
+  AdvisoryPanelLiveEvent,
+  ConsensusLiveEvent,
   DebateLiveEvent,
-  DebateRecord,
-  DebateRequest,
   FollowupExchange,
-  ModelSnapshot,
   UserFeedback
-} from "@polyvise/core/debate/types";
+} from "@/lib/polyvise-api/types";
 
 /**
  * Every mode's live events on one bus. The three payload unions stay separate
- * in core because their shapes genuinely differ; the transport does not care,
- * and a subscriber narrows on `kind` as it always has.
+ * because their shapes genuinely differ; the transport does not care, and a
+ * subscriber narrows on `kind` as it always has.
  */
 export type RunLiveEvent = DebateLiveEvent | ConsensusLiveEvent | AdvisoryPanelLiveEvent;
 
@@ -40,8 +33,8 @@ const repository = createDefaultDebateRepository();
 const feedbackRepository = createDefaultFeedbackRepository();
 export const DEBATE_UNAVAILABLE_MESSAGE =
   "The debate couldn't start right now. Please try again in a few minutes.";
-export const DEBATE_JUDGE_UNAVAILABLE_MESSAGE =
-  "The judge couldn't finish this debate right now. Please try again in a few minutes.";
+const RUN_INTERRUPTED_MESSAGE =
+  "The run was interrupted before it finished. Please start it again.";
 
 type Listener = (event: RunLiveEvent) => void;
 
@@ -88,75 +81,31 @@ class DebateEventBus {
   }
 }
 
-const buses = new Map<string, DebateEventBus>();
-
-function getOrCreateBus(id: string): DebateEventBus {
-  let bus = buses.get(id);
-  if (!bus) {
-    bus = new DebateEventBus();
-    buses.set(id, bus);
-  }
-  return bus;
+/** A run this server instance is following on the API. */
+interface RunWatch {
+  bus: DebateEventBus;
+  completion: Promise<PolyviseRecord>;
 }
 
-function scheduleBusCleanup(id: string, delayMs = 5 * 60 * 1000): void {
+const watches = new Map<string, RunWatch>();
+
+function scheduleWatchCleanup(id: string, delayMs = 5 * 60 * 1000): void {
   setTimeout(() => {
-    buses.delete(id);
+    watches.delete(id);
   }, delayMs).unref?.();
 }
 
-function buildSeedRecord(input: DebateRequest): {
-  record: PolyviseRecord;
-  request: DebateRequest;
-  config: DebateRuntimeConfig;
-  framed: ReturnType<typeof frameDebateRequest>;
-} {
-  const request = debateRequestSchema.parse(input);
-  const id = `debate_${randomUUID().slice(0, 10)}`;
-  const framed = frameDebateRequest(request);
-  const createdAt = new Date().toISOString();
-  const record: PolyviseRecord = {
-    id,
-    subject: framed.subject,
-    context: framed.context,
-    mode: request.mode,
-    evidence: request.evidence,
-    status: "queued",
-    resolution: framed.resolution,
-    topicKind: framed.topicKind,
-    highStakes: framed.highStakes,
-    createdAt,
-    updatedAt: createdAt,
-    productNotes: productNotes(),
-    followups: []
-  };
+const promptPolicy: ApiCallOptions["provider"] = { promptPolicy: polyvisePromptPolicy };
 
-  const baseConfig = loadDebateRuntimeConfig();
-  const config: DebateRuntimeConfig = {
-    ...baseConfig,
-    // Multi-agent arrays need more output room than a short model-lab answer.
-    llmMaxTokens: Math.max(baseConfig.llmMaxTokens, 8192),
-    useStrictJsonSchema: true,
-    quickModel: request.models?.quick?.trim() || baseConfig.quickModel,
-    deepModel: request.models?.deep?.trim() || baseConfig.deepModel,
-    yesModel: request.models?.yes?.trim() || request.models?.quick?.trim() || baseConfig.yesModel,
-    noModel: request.models?.no?.trim() || request.models?.deep?.trim() || baseConfig.noModel,
-    judgeModel: request.models?.judge?.trim() || baseConfig.judgeModel
-  };
-
-  return { record, request, config: configWithDevOverrides(config, request), framed };
-}
-
-function configWithDevOverrides(config: DebateRuntimeConfig, request: DebateRequest): DebateRuntimeConfig {
-  if (process.env.NODE_ENV === "production" || !request.devOptions?.liveApis) {
-    return config;
-  }
-
+function runOptions(): ApiCallOptions {
+  const configured = Number(process.env.POLYVISE_LLM_MAX_TOKENS) || 0;
   return {
-    ...config,
-    evidenceProvider: "tavily",
-    enableMockLlm: false,
-    allowDeterministicFallbacks: false
+    config: {
+      // Multi-agent arrays need more output room than a short model-lab answer.
+      llmMaxTokens: Math.max(configured, 8192),
+      useStrictJsonSchema: true
+    },
+    provider: promptPolicy
   };
 }
 
@@ -165,140 +114,178 @@ export interface StartDebateResult {
   completion: Promise<PolyviseRecord>;
 }
 
-export async function startDebate(input: DebateRequest): Promise<StartDebateResult> {
-  const { record, request, config, framed } = buildSeedRecord(input);
+/**
+ * Starts a run on the Polyvise API and follows it from here.
+ *
+ * The API validates and frames the request, runs the engine as a background
+ * job and streams its events; this app owns the record. Throws
+ * `PolyviseApiError` (`invalidRequest`) when the request breaks the contract.
+ */
+export async function startDebate(input: unknown): Promise<StartDebateResult> {
+  const { record: seed, request } = await seedRecord(input);
+  const record: PolyviseRecord = seed;
+  await startJob(record.id, request, runOptions());
   await repository.save(record);
-  const bus = getOrCreateBus(record.id);
+  return { debate: record, completion: watchRun(record).completion };
+}
 
-  const completion = (async (): Promise<PolyviseRecord> => {
-    try {
-      const run = await runForMode(record.id, request, framed, config, (event) => bus.emit(event));
-      const completed: PolyviseRecord = {
-        ...record,
-        status: run.status,
-        latestRun: run,
-        updatedAt: new Date().toISOString()
-      };
-      await repository.save(completed);
-      scheduleBusCleanup(record.id);
-      return completed;
-    } catch (error) {
-      const failedSnapshot = modelSnapshotFromError(error);
-      const lastStage = [...bus.buffer].reverse().find((event) => event.kind === "stage");
-      const failure = describeRunFailure(error, failedSnapshot, lastStage?.kind === "stage" ? lastStage.status : undefined, record.mode);
-      if (failedSnapshot) {
-        bus.emit({ kind: "model_snapshot", snapshot: failedSnapshot });
-      }
-      const hasStartedDebate = bus.buffer.some(
-        (event) => event.kind === "turns" || event.kind === "scorecard" || event.kind === "summary"
-      );
-      bus.emit({
-        kind: "error",
-        message: failure.reason
-      });
-      const failed: PolyviseRecord = {
-        ...record,
-        status: "failed",
-        failureReason: failure.reason,
-        failedStep: failure.step,
-        failedModel: failedSnapshot?.model,
-        updatedAt: new Date().toISOString()
-      };
-      await repository.save(failed);
-      console.error("[polyvise.run.failed]", {
-        runId: record.id,
-        mode: record.mode,
-        step: failure.step,
-        model: failedSnapshot?.model,
-        reason: failure.reason,
-        technicalReason: error instanceof Error ? error.message.slice(0, 1000) : "Unknown error"
-      });
-      scheduleBusCleanup(record.id);
-      throw error;
-    }
-  })();
-
+function watchRun(record: PolyviseRecord): RunWatch {
+  const existing = watches.get(record.id);
+  if (existing) {
+    return existing;
+  }
+  const bus = new DebateEventBus();
+  const completion = followRun(record, bus).finally(() => scheduleWatchCleanup(record.id));
   // Prevent unhandled rejection warnings when callers only consume via SSE.
   completion.catch(() => {});
+  const watch = { bus, completion };
+  watches.set(record.id, watch);
+  return watch;
+}
 
-  return { debate: record, completion };
+const MAX_STREAM_FAILURES = 5;
+
+/** Longer than the API's keep-alive interval, so a quiet but healthy stream is not mistaken for a broken one. */
+const HEALTHY_STREAM_MS = 20_000;
+
+function isLiveEvent(data: unknown): data is RunLiveEvent {
+  return Boolean(data) && typeof data === "object" && typeof (data as { kind?: unknown }).kind === "string";
 }
 
 /**
- * Runs whichever mode was asked for.
- *
- * The hybrid council keeps returning its flat run so records written before
- * the other modes existed stay byte-identical to new ones; consensus and the
- * panel return their envelopes, which is the only shape they have.
+ * Relays a job's events onto the bus until the job ends, then stores the
+ * outcome. A dropped connection resumes after the last event received, so a
+ * long run survives the API's per-request time limit.
  */
-async function runForMode(
-  debateId: string,
-  request: DebateRequest,
-  framed: ReturnType<typeof frameDebateRequest>,
-  config: DebateRuntimeConfig,
-  emit: (event: RunLiveEvent) => void
-): Promise<StoredRun> {
-  const provider = withPolyviseTerminology(createDefaultLlmProvider(config));
-  switch (request.mode) {
-    case "consensus":
-      return runConsensus(debateId, request, framed, { config, emit, provider });
-    case "advisory_panel":
-      return runAdvisoryPanel(debateId, request, framed, { config, emit, provider });
-    case "hybrid_council":
-    default:
-      return runHybridCouncilDebate(debateId, request, framed, { config, emit, provider });
+async function followRun(record: PolyviseRecord, bus: DebateEventBus): Promise<PolyviseRecord> {
+  let lastEventId: string | undefined;
+  let failures = 0;
+
+  for (;;) {
+    const connectedAt = Date.now();
+    let progressed = false;
+    let ended = false;
+    let lost = false;
+    try {
+      for await (const event of jobEvents(record.id, lastEventId)) {
+        progressed = true;
+        if (event.id) lastEventId = event.id;
+        // The terminal event is published by `settleRun`, once the outcome is
+        // stored, so a client that stops listening there can fetch the record.
+        if (event.name === "closed" || event.name === "complete" || event.name === "error") {
+          ended = true;
+          break;
+        }
+        if (isLiveEvent(event.data)) {
+          bus.emit(event.data);
+        }
+      }
+    } catch (error) {
+      // A 404 means the API no longer knows this job: it restarted or the job expired.
+      lost = error instanceof PolyviseApiError && error.status === 404;
+      if (!lost) {
+        console.warn("[polyvise.run.stream]", {
+          runId: record.id,
+          reason: error instanceof Error ? error.message.slice(0, 300) : "Unknown error"
+        });
+      }
+    }
+
+    if (ended) {
+      return settleRun(record, bus);
+    }
+    failures = progressed || Date.now() - connectedAt >= HEALTHY_STREAM_MS ? 0 : failures + 1;
+    if (lost || failures >= MAX_STREAM_FAILURES) {
+      return failRun(record, bus, {
+        message: lost ? "The Polyvise API no longer has this job." : "Lost contact with the Polyvise API.",
+        summary: RUN_INTERRUPTED_MESSAGE,
+        step: "run"
+      });
+    }
+    if (failures > 0) {
+      await new Promise((resolve) => setTimeout(resolve, Math.min(500 * 2 ** failures, 8000)));
+    }
   }
 }
 
-function modelSnapshotFromError(error: unknown): ModelSnapshot | null {
-  if (error instanceof LlmProviderFailure) {
-    return error.snapshot;
+async function jobOutcome(id: string): Promise<JobStatus | null> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await getJob(id);
+    } catch (error) {
+      if ((error instanceof PolyviseApiError && error.status === 404) || attempt >= 2) {
+        return null;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
+    }
   }
-  return null;
 }
 
-function describeRunFailure(
-  error: unknown,
-  snapshot: ModelSnapshot | null,
-  status: DebateRecord["status"] | undefined,
-  mode: DebateRequest["mode"]
-): { reason: string; step: string } {
-  const stageLabels: Partial<Record<DebateRecord["status"], string>> = {
-    framing: "question framing",
-    researching: "evidence gathering",
-    debating: mode === "advisory_panel" ? "panel advice" : mode === "consensus" ? "perspective responses" : "debate",
-    judging: mode === "advisory_panel" ? "panel chair" : mode === "consensus" ? "consensus summary" : "judge review"
-  };
-  const step = snapshot?.role ?? (status ? stageLabels[status] : undefined) ?? "run setup";
-  const raw = snapshot?.failure ?? (error instanceof Error ? error.message : "The run could not finish.");
-  const timedOut = /abort|timed?\s*out|timeout/i.test(raw);
-  const prefix = snapshot?.model ? `${snapshot.model} ${timedOut ? "timed out" : "failed"}` : "The run failed";
-  const detail = /structured output validation failed/i.test(raw)
-    ? "The model returned an answer that did not match the required format."
-    : /openrouter_api_key/i.test(raw)
-      ? "The model provider is not configured."
-      : raw;
-  return {
-    reason: `${prefix} during ${step}.${timedOut ? " Try a faster model or try again later." : ` ${detail}`}`.slice(0, 500),
-    step
-  };
+async function settleRun(record: PolyviseRecord, bus: DebateEventBus): Promise<PolyviseRecord> {
+  const job = await jobOutcome(record.id);
+  if (job?.status === "complete" && job.run) {
+    const completed: PolyviseRecord = {
+      ...record,
+      status: job.run.status,
+      latestRun: job.run,
+      updatedAt: new Date().toISOString()
+    };
+    await repository.save(completed);
+    bus.emit({ kind: "complete", runId: job.run.id });
+    return completed;
+  }
+  return failRun(
+    record,
+    bus,
+    job?.failure ?? { message: "The run ended without a result.", summary: RUN_INTERRUPTED_MESSAGE, step: "run" }
+  );
 }
 
-export async function createDebate(input: DebateRequest): Promise<PolyviseRecord> {
+async function failRun(record: PolyviseRecord, bus: DebateEventBus, failure: JobFailure): Promise<never> {
+  const failed: PolyviseRecord = {
+    ...record,
+    status: "failed",
+    failureReason: failure.summary,
+    failedStep: failure.step,
+    failedModel: failure.model,
+    updatedAt: new Date().toISOString()
+  };
+  await repository.save(failed);
+  bus.emit({ kind: "error", message: failure.summary });
+  console.error("[polyvise.run.failed]", {
+    runId: record.id,
+    mode: record.mode,
+    step: failure.step,
+    model: failure.model,
+    reason: failure.summary,
+    technicalReason: failure.message.slice(0, 1000)
+  });
+  throw new Error(failure.message);
+}
+
+export async function createDebate(input: unknown): Promise<PolyviseRecord> {
   const { completion } = await startDebate(input);
   return completion;
 }
 
+/**
+ * Streams a run's events to `listener`, replaying what already happened.
+ *
+ * A run that is still in flight but unknown to this server instance — started
+ * by another instance, or before a restart — is picked up from the API, which
+ * replays it and lets this instance store the outcome.
+ */
 export function subscribeToDebate(
-  debateId: string,
+  debate: PolyviseRecord,
   listener: Listener
 ): { unsubscribe: () => void; terminal: boolean } {
-  const bus = buses.get(debateId);
-  if (!bus) {
+  const finished = debate.status === "complete" || debate.status === "failed";
+  const watch = watches.get(debate.id) ?? (finished ? null : watchRun(debate));
+  if (!watch) {
     return { unsubscribe: () => {}, terminal: true };
   }
-  const unsubscribe = bus.subscribe(listener);
-  return { unsubscribe, terminal: bus.isTerminal() };
+  const unsubscribe = watch.bus.subscribe(listener);
+  return { unsubscribe, terminal: watch.bus.isTerminal() };
 }
 
 export async function getDebate(id: string): Promise<PolyviseRecord | null> {
@@ -318,18 +305,7 @@ export async function submitFeedback(input: {
   userAgent?: string;
   metadata?: Record<string, unknown>;
 }): Promise<UserFeedback> {
-  const parsed = feedbackRequestSchema.parse(input);
-  const feedback: UserFeedback = {
-    id: `feedback_${randomUUID().slice(0, 12)}`,
-    app: input.app?.trim() || "polyvise",
-    message: parsed.message,
-    debateId: parsed.debateId || undefined,
-    pagePath: parsed.pagePath || undefined,
-    userAgent: input.userAgent?.trim() || undefined,
-    metadata: input.metadata ?? {},
-    createdAt: new Date().toISOString()
-  };
-
+  const feedback = await normalizeFeedback({ ...input });
   await feedbackRepository.save(feedback);
   return feedback;
 }
@@ -338,15 +314,17 @@ export function listFeedback(): Promise<UserFeedback[]> {
   return feedbackRepository.list();
 }
 
-export async function addFollowup(debateId: string, question: string): Promise<FollowupExchange | null> {
+/** Throws `PolyviseApiError` (`invalidRequest`) when the question breaks the API's contract. */
+export async function addFollowup(debateId: string, input: unknown): Promise<FollowupExchange | null> {
   const debate = await getDebate(debateId);
   if (!debate?.latestRun) {
     return null;
   }
 
-  const answer = await answerFollowup(question, debate);
+  const question = typeof input === "string" ? input.trim() : "";
+  const answer = await followupAnswer(question, debate);
   const exchange: FollowupExchange = {
-    id: `followup_${randomUUID().slice(0, 8)}`,
+    id: `followup_${crypto.randomUUID().slice(0, 8)}`,
     question,
     answer,
     createdAt: new Date().toISOString()
@@ -362,20 +340,16 @@ export async function addFollowup(debateId: string, question: string): Promise<F
   return exchange;
 }
 
-async function answerFollowup(question: string, debate: PolyviseRecord): Promise<string> {
-  const fallback = {
-    answer: answerFollowupDeterministic(question, debate)
-  };
+async function followupAnswer(question: string, debate: PolyviseRecord): Promise<string> {
+  const fallbackAnswer = answerFollowupDeterministic(question, debate);
 
   try {
-    const result = await withPolyviseTerminology(createDefaultLlmProvider()).generateStructured<unknown>({
-      role: "follow-up answer",
-      schemaName: "followupOutput",
-      prompt: JSON.stringify(fallback)
-    });
-    return followupOutputSchema.parse(result.data).answer;
-  } catch {
-    return fallback.answer;
+    return (await answerFollowup({ question, fallbackAnswer }, { provider: promptPolicy })).answer;
+  } catch (error) {
+    if (error instanceof PolyviseApiError && error.invalidRequest) {
+      throw error;
+    }
+    return fallbackAnswer;
   }
 }
 

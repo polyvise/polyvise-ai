@@ -1,7 +1,7 @@
 "use client";
 
 import { BarChart3, ShieldQuestion, Users, Lightbulb, SlidersHorizontal } from "lucide-react";
-import type { CouncilSize, DebateMode } from "@polyvise/core/debate/types";
+import type { CouncilSize, DebateMode } from "@/lib/polyvise-api/types";
 import { modeGuide } from "@/lib/mode-guide";
 
 const icons = [BarChart3, ShieldQuestion, Users, Lightbulb];

@@ -66,7 +66,7 @@ const defaultRoles = [
 
 export default async function LabPage() {
   const availableModels = await availableLabModels();
-  const { configured, mock } = labProviderStatus();
+  const { configured, mock } = await labProviderStatus();
   // Defaults are mode-specific, so the roster names both the mode and role.
   const defaultRolesFor = new Map<string, (typeof defaultRoles)[number][]>();
   for (const role of defaultRoles) {
@@ -105,11 +105,11 @@ export default async function LabPage() {
                 <>
                   Every model below will return the same deterministic template rather than its own answer, so a
                   comparison run tells you nothing about the models. Set <code>POLYVISE_ENABLE_MOCK_LLM=false</code>{" "}
-                  and <code>OPENROUTER_API_KEY</code> to compare real output.
+                  and <code>OPENROUTER_API_KEY</code> on the Polyvise API to compare real output.
                 </>
               ) : (
                 <>
-                  Model comparisons are unavailable until the server’s OpenRouter connection is configured.
+                  Model comparisons are unavailable until the Polyvise API’s OpenRouter connection is configured.
                 </>
               )}
             </p>

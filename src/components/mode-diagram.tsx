@@ -1,4 +1,4 @@
-import type { CouncilSize, DebateMode } from "@polyvise/core/debate/types";
+import type { CouncilSize, DebateMode } from "@/lib/polyvise-api/types";
 
 /** A schematic of roles, never a claim about distinct model providers. */
 export function ModeDiagram({
