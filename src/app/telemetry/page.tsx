@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export const metadata: Metadata = {
-  title: "Telemetry | Polyvise",
+  title: "Telemetry | Polyvise AI",
   description: "Engine health: run volume, step reliability, retries and spend."
 };
 

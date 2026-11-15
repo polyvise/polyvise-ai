@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export const metadata: Metadata = {
-  title: "Run history | Polyvise",
+  title: "Run history | Polyvise AI",
   description: "Your own runs, plus anonymous totals across the workspace."
 };
 
@@ -25,7 +25,7 @@ export default async function RunsPage() {
     <section className="page">
       <h1 className="display page-title">Your runs</h1>
       <p className="lede mt10 mw640">
-        Polyvise has no accounts, so this list lives in your browser. Everyone else&apos;s questions stay private —
+        Polyvise AI has no accounts, so this list lives in your browser. Everyone else&apos;s questions stay private —
         the totals below are the only thing shared, and they never include a topic.
       </p>
 

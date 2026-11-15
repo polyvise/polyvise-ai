@@ -9,7 +9,7 @@ import { labProviderStatus, availableLabModels } from "@/server/model-lab";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Model lab | Polyvise",
+  title: "Model lab | Polyvise AI",
   description: "Send one prompt to every configured model and compare the answers side by side."
 };
 

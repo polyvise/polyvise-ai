@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { Route } from "next";
 
 export const metadata: Metadata = {
-  title: "Consensus | Polyvise",
+  title: "Consensus | Polyvise AI",
   description: "A convergence mode where agents answer independently, then revise or hold."
 };
 

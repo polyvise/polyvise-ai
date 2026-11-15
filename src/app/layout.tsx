@@ -28,7 +28,7 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Polyvise",
+  title: "Polyvise AI",
   description: "An AI workspace for debate, consensus, and advisory panels, with reasoning, evidence, and model comparisons.",
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000")
 };

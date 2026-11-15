@@ -54,9 +54,9 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="app">
       <a href="#main-content" className="skip-link">Skip to content</a>
       <header className="topbar">
-        <Link href={"/" as Route} className="brand" aria-label="Polyvise home">
+        <Link href={"/" as Route} className="brand" aria-label="Polyvise AI home">
           <BrandMark />
-          <span className="brand-name">Polyvise</span>
+          <span className="brand-name">Polyvise AI</span>
         </Link>
 
         <nav className="topnav" aria-label="Primary">

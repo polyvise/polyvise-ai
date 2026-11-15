@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Design system | Polyvise",
-  description: "The tokens and rules every Polyvise surface is built from."
+  title: "Design system | Polyvise AI",
+  description: "The tokens and rules every Polyvise AI surface is built from."
 };
 
 const swatches = [

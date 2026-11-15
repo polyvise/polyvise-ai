@@ -2,7 +2,7 @@
   "name": "@polyvise/polyvise-ai",
   "version": "0.3.0",
   "private": true,
-  "description": "The Polyvise website and professional debate workspace.",
+  "description": "The Polyvise AI website and professional debate workspace.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

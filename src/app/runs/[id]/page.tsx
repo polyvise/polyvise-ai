@@ -17,7 +17,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { id } = await params;
   const debate = await getDebate(id).catch(() => null);
   return {
-    title: debate ? `${debate.subject} | Polyvise` : "Run | Polyvise"
+    title: debate ? `${debate.subject} | Polyvise AI` : "Run | Polyvise AI"
   };
 }
 

@@ -7,7 +7,7 @@ import { adminEnabled, isAdmin } from "@/server/admin";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Admin | Polyvise",
+  title: "Admin | Polyvise AI",
   robots: { index: false, follow: false }
 };
 
