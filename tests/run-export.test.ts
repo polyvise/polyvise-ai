@@ -1,5 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { startDebate } from "@/server/debate-store";
+import { installFakeApi } from "./helpers/fake-api";
+
+beforeEach(() => {
+  installFakeApi();
+});
+afterEach(() => vi.unstubAllGlobals());
 import { runBrief } from "@/lib/run-export";
 import { currentDebateTerminology } from "@/lib/debate-terminology";
 import {

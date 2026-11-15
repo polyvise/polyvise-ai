@@ -18,7 +18,7 @@ import type {
   Scorecard,
   StanceScout,
   TopicKind
-} from "@polyvise/core/debate/types";
+} from "@/lib/polyvise-api/types";
 
 export type StepId = "scouts" | "claims" | "turns" | "scorecard" | "summary";
 

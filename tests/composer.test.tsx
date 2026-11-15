@@ -6,23 +6,25 @@ import { buildRunRequest, modeOrder, parseMode } from "@/lib/mode-guide";
 import {
   defaultSelectionsByMode,
   defaultSelectionsForMode,
-  modelCatalog,
+  withSupplementalModels,
+  type ModelOption,
 } from "@/lib/model-catalog";
-import { debateRequestSchema } from "@polyvise/core/debate/schema";
-
-import {
-  MockLlmProvider,
-  OpenRouterLlmProvider,
-  type LlmRequest,
-} from "@polyvise/core/providers/llm";
-import { loadDebateRuntimeConfig } from "@polyvise/core/debate/config";
-import { runHybridCouncilDebate } from "@polyvise/core/debate/engine";
-import { runConsensus } from "@polyvise/core/consensus/engine";
-import { runAdvisoryPanel } from "@polyvise/core/panel/engine";
+import { EngineInfoProvider } from "@/components/engine-info";
+import { fixtures } from "./helpers/fake-api";
 import { modelSlotsForMode } from "@/lib/mode-guide";
+import type { CouncilSize, DebateMode } from "@/lib/polyvise-api/types";
 
 const push = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
+const modelCatalog = withSupplementalModels(fixtures.models as ModelOption[]);
+/** The composer as the app renders it: inside the provider that supplies the API's model catalog. */
+function ComposerInApp(props: Parameters<typeof Composer>[0]) {
+  return (
+    <EngineInfoProvider value={{ version: fixtures.apiVersion, models: modelCatalog }}>
+      <Composer {...props} />
+    </EngineInfoProvider>
+  );
+}
 let host: HTMLDivElement;
 let root: Root;
 beforeEach(() => {
@@ -59,7 +61,7 @@ async function fill(selector: string, text: string) {
 
 describe("mode request contracts", () => {
   it.each(modeOrder)(
-    "sends only applicable settings for %s, accepted by core",
+    "sends only applicable settings for %s",
     (mode) => {
       const request = buildRunRequest({
         subject: "  Should we migrate our database?  ",
@@ -70,7 +72,6 @@ describe("mode request contracts", () => {
         rounds: 5,
         models: defaultSelectionsForMode(mode),
       });
-      expect(debateRequestSchema.safeParse(request).success).toBe(true);
       expect(request.subject).toBe("Should we migrate our database?");
       expect(request.context).toBe("Small team");
       expect(request.councilSize).toBe(
@@ -103,7 +104,7 @@ describe("composer interactions", () => {
     const original = HTMLElement.prototype.scrollIntoView;
     HTMLElement.prototype.scrollIntoView = scroll;
     try {
-      await act(async () => root.render(<Composer />));
+      await act(async () => root.render(<ComposerInApp />));
       for (let attempt = 0; attempt < 2; attempt++) {
         await click(".canvas-settings");
         expect(host.querySelectorAll(".routing-row").length).toBeGreaterThan(0);
@@ -115,7 +116,7 @@ describe("composer interactions", () => {
     }
   });
   it.each(modeOrder)("starts %s empty with the transit placeholder and shared examples", async (initialMode) => {
-    await act(async () => root.render(<Composer initialMode={initialMode} />));
+    await act(async () => root.render(<ComposerInApp initialMode={initialMode} />));
     const question = () => (host.querySelector("#subject") as HTMLTextAreaElement).value;
     expect(question()).toBe("");
     expect((host.querySelector("#subject") as HTMLTextAreaElement).placeholder).toBe("Should cities make public transit free?");
@@ -133,7 +134,7 @@ describe("composer interactions", () => {
     }
   });
   it("keeps the question and context across modes while showing the right roles", async () => {
-    await act(async () => root.render(<Composer />));
+    await act(async () => root.render(<ComposerInApp />));
     await fill("#subject", "Should we move to a four-day workweek?");
     await click('[aria-controls="question-context"]');
     await fill("#context", "We need weekday support coverage.");
@@ -157,7 +158,7 @@ describe("composer interactions", () => {
     ).toContain("weekday support");
   });
   it("uses and resets independent model defaults for each mode", async () => {
-    await act(async () => root.render(<Composer />));
+    await act(async () => root.render(<ComposerInApp />));
     await click('[aria-controls="model-settings"]');
 
     expect((host.querySelector("#model-deep") as HTMLSelectElement).value).toBe(
@@ -210,7 +211,7 @@ describe("composer interactions", () => {
         json: async () => ({ error: "Too many requests" }),
       }),
     );
-    await act(async () => root.render(<Composer initialMode="consensus" />));
+    await act(async () => root.render(<ComposerInApp initialMode="consensus" />));
     await fill("#subject", "Should we migrate our database?");
     await click('button[type="submit"]');
     expect(host.querySelector('[role="alert"]')?.textContent).toContain(
@@ -235,7 +236,7 @@ describe("composer interactions", () => {
     );
     vi.stubGlobal("fetch", fetcher);
     await act(async () =>
-      root.render(<Composer initialMode="advisory_panel" />),
+      root.render(<ComposerInApp initialMode="advisory_panel" />),
     );
     await fill("#subject", "How should we introduce AI support?");
     await click('button[type="submit"]');
@@ -273,55 +274,31 @@ describe("model defaults", () => {
       defaultSelectionsByMode.hybrid_council.quick.split("/")[0],
     );
   });
+
+  it("offers every default before the catalog loads, and when the API is unreachable", async () => {
+    await act(async () => root.render(<Composer />));
+    await click('[aria-controls="model-settings"]');
+    const offered = Array.from(host.querySelectorAll("#model-judge option"), (option) => (option as HTMLOptionElement).value);
+    for (const model of Object.values(defaultSelectionsByMode.hybrid_council)) {
+      expect(offered).toContain(model);
+    }
+    expect((host.querySelector("#model-judge") as HTMLSelectElement).value).toBe(
+      defaultSelectionsByMode.hybrid_council.judge,
+    );
+  });
 });
 
-// Routing differs not just by mode, but by debate size. Exercise the engine's
-// actual calls so an attractive control cannot silently become a no-op.
+// Routing differs not just by mode, but by debate size. The fixture records
+// which model slots the API's engine actually called in each case, so an
+// attractive control cannot silently become a no-op.
 
-it.each([
-  ["hybrid_council", "duo"],
-  ["hybrid_council", "quartet"],
-  ["consensus", "quartet"],
-  ["advisory_panel", "quartet"],
-] as const)(
-  "every model control maps to a real call in %s / %s",
-  async (mode, size) => {
-    const roles: string[] = [];
-    const config = loadDebateRuntimeConfig({
-      NODE_ENV: "test",
-      POLYVISE_EVIDENCE_PROVIDER: "mock",
-      POLYVISE_QUICK_MODEL: "quick",
-      POLYVISE_DEEP_MODEL: "deep",
-      POLYVISE_YES_MODEL: "yes",
-      POLYVISE_NO_MODEL: "no",
-      POLYVISE_JUDGE_MODEL: "judge",
-    });
-    class RecordingProvider extends MockLlmProvider {
-      async generateStructured<T>(request: LlmRequest) {
-        roles.push(request.role);
-        return super.generateStructured<T>(request);
-      }
-    }
-    const provider = new RecordingProvider();
-    const run =
-      mode === "consensus"
-        ? runConsensus
-        : mode === "advisory_panel"
-          ? runAdvisoryPanel
-          : runHybridCouncilDebate;
-    await run(
-      "routing-test",
-      {
-        subject: "Should our team migrate our database?",
-        mode,
-        councilSize: size,
-      },
-      undefined,
-      { config, provider },
-    );
-    const router = new OpenRouterLlmProvider(config);
-    expect(new Set(roles.map((role) => router.modelForRole(role)))).toEqual(
-      new Set(modelSlotsForMode(mode, size).map((slot) => slot.id)),
-    );
+it.each(fixtures.routing)(
+  "every model control maps to a real call in $mode / $councilSize",
+  ({ mode, councilSize, slots }) => {
+    expect(
+      modelSlotsForMode(mode as DebateMode, councilSize as CouncilSize)
+        .map((slot) => slot.id)
+        .sort(),
+    ).toEqual(slots);
   },
 );

@@ -4,6 +4,7 @@ import "@xyflow/react/dist/style.css";
 import "./globals.css";
 import "./perspective-canvas.css";
 import { AppShell } from "@/components/app-shell";
+import { EngineInfoProvider } from "@/components/engine-info";
 
 const display = Instrument_Serif({
   subsets: ["latin"],
@@ -67,7 +68,9 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body>
-        <AppShell>{children}</AppShell>
+        <EngineInfoProvider>
+          <AppShell>{children}</AppShell>
+        </EngineInfoProvider>
       </body>
     </html>
   );

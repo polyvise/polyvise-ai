@@ -2,7 +2,7 @@ import type {
   CouncilSize,
   DebateMode,
   DebateRequest,
-} from "@polyvise/core/debate/types";
+} from "@/lib/polyvise-api/types";
 import type { SlotId } from "./model-catalog";
 
 export const modeOrder: DebateMode[] = [

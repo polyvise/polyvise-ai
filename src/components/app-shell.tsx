@@ -6,7 +6,7 @@ import type { Route } from "next";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { CORE_VERSION, MODEL_COUNT } from "@/lib/build-info";
+import { useEngineInfo } from "@/components/engine-info";
 
 type NavItem = {
   href: Route;
@@ -48,6 +48,7 @@ export function BrandMark({ size = 44 }: { size?: number }) {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname() ?? "/";
+  const engine = useEngineInfo();
   const onHome = pathname === "/";
 
   return (
@@ -80,7 +81,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           {onHome ? (
             <Link href={"/lab" as Route} className="status-pill">
               <span className="status-dot" />
-              {MODEL_COUNT} models in catalog
+              {engine.models ? `${engine.models.length} models in catalog` : "Model catalog"}
             </Link>
           ) : (
             <Link href={"/" as Route} className="btn btn-ink">
@@ -95,7 +96,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <footer className="site-foot">
         <span className="row gap8">
           <span className="status-dot" />
-          polyvise-core v{CORE_VERSION}
+          polyvise-api{engine.version ? ` v${engine.version}` : ""}
         </span>
         <Link href={"/telemetry" as Route}>Telemetry</Link>
         <Link href={"/system" as Route}>Design system</Link>

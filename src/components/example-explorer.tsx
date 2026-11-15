@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ArrowRight, Check, ChevronDown } from "lucide-react";
 import { modeGuide, modeOrder } from "@/lib/mode-guide";
-import type { DebateMode } from "@polyvise/core/debate/types";
+import type { DebateMode } from "@/lib/polyvise-api/types";
 
 type Sample = {
   tag: string;

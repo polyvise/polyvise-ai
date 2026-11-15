@@ -1,5 +1,5 @@
-import type { DebateRecord, DebateRun, DebateMode } from "@polyvise/core/debate/types";
-import type { AdvisoryPanelRunEnvelope, ConsensusRunEnvelope } from "@polyvise/core/runs/types";
+import type { DebateRecord, DebateRun, DebateMode } from "@/lib/polyvise-api/types";
+import type { AdvisoryPanelRunEnvelope, ConsensusRunEnvelope } from "@/lib/polyvise-api/types";
 
 /**
  * What a completed run looks like in storage, across all three modes.
@@ -14,7 +14,7 @@ export type StoredRun = DebateRun | ConsensusRunEnvelope | AdvisoryPanelRunEnvel
 /**
  * A debate record whose `latestRun` may be any mode.
  *
- * Core's `DebateRecord` types `latestRun` as `DebateRun`, which was right when
+ * The API's `DebateRecord` types `latestRun` as `DebateRun`, which was right when
  * one mode existed. Widening it there would break every consumer that reads
  * `record.latestRun.summary`, so the wider type lives here instead — the whole
  * record is persisted as one jsonb blob, so this is purely a type-level

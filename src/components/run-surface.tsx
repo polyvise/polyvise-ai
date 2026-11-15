@@ -36,7 +36,7 @@ import type {
   ModelSnapshot,
   PlaceholderInfo,
   RoundTurn
-} from "@polyvise/core/debate/types";
+} from "@/lib/polyvise-api/types";
 
 type TabId = "floor" | "verdict" | "evidence" | "graph" | "telemetry";
 

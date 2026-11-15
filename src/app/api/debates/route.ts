@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
-import { ZodError } from "zod";
-import { startDebate } from "@/server/debate-store";
+import { DEBATE_UNAVAILABLE_MESSAGE, startDebate } from "@/server/debate-store";
+import { PolyviseApiError } from "@/server/polyvise-api";
 import { rateLimit } from "@/server/rate-limit";
 
 /**
@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const payload = await request.json();
+    const payload = await request.json().catch(() => null);
     const { debate } = await startDebate(payload);
 
     return Response.json(
@@ -35,11 +35,11 @@ export async function POST(request: NextRequest) {
       }
     );
   } catch (error) {
-    if (error instanceof ZodError) {
+    if (error instanceof PolyviseApiError && error.invalidRequest) {
       return Response.json(
         {
           error: "Invalid debate request.",
-          issues: error.issues
+          issues: error.issues ?? []
         },
         {
           status: 400
@@ -47,12 +47,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // The visitor can't act on an engine outage or a misconfigured key, so the
+    // detail goes to the log and they get something they can act on.
+    console.error("[polyvise.run.start_failed]", {
+      status: error instanceof PolyviseApiError ? error.status : undefined,
+      reason: error instanceof Error ? error.message.slice(0, 500) : "Unknown error"
+    });
     return Response.json(
       {
-        error: error instanceof Error ? error.message : "Unable to start debate."
+        error: DEBATE_UNAVAILABLE_MESSAGE
       },
       {
-        status: 500
+        status: 502
       }
     );
   }

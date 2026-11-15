@@ -1,14 +1,14 @@
 import { ResultPerspectives } from "@/components/result-perspectives";
 import { RunQualityNote } from "@/components/run-quality-note";
 import { RunDownload } from "@/components/run-download";
-import type { EvidenceSource } from "@polyvise/core/debate/types";
+import type { EvidenceSource } from "@/lib/polyvise-api/types";
 import type {
   AdvisoryPanelRunEnvelope,
   ConsensusPosition,
   ConsensusRunEnvelope,
   ConsensusStance,
   PanelAdvice
-} from "@polyvise/core/runs/types";
+} from "@/lib/polyvise-api/types";
 import type { PolyviseRecord } from "@/lib/run-record";
 import { consensusStanceBreakdown } from "@/lib/run-summary";
 
